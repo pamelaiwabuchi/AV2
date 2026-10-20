@@ -1,0 +1,6 @@
+CLAUDE.md
+node_modules
+dist
+.env
+src/generated
+AV2.pdf

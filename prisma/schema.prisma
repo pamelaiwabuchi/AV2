@@ -1,0 +1,52 @@
+generator client {
+    provider = "prisma-client"
+    output   = "../src/generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum PapelUsuario {
+    ADMINISTRADOR
+    OPERADOR_CADASTRO
+    GESTOR_ALMOXARIFADO
+    AUDITOR
+}
+
+model Organizacao {
+    id                  String @id @default(uuid()) @db.build
+    razaoSocial         String
+    cnpj                String @unique
+    inscricaoEstadual   String 
+    enderecoCompleto    String
+    telefone            String
+    email               String
+    dataCadastro        DateTime @default(now())
+    ativo               Boolean  @default(true)
+    versao              Int      @default(1)
+
+    contratos   Contrato []
+    lotes       Lote[]
+}
+
+Enum StatusLote {
+    RECEBIDO
+    EM_TRIAGEM
+    TRIAGEM_CONCLUIDA
+    ENCAMINHADO
+    FINALIZADO
+    CANCELADO
+}
+
+Enum StatusRastreamento {
+    AGUARDANDO_TRIAGEM
+    EM_TRIAGEM
+    AGUARDANDO_DESMONTE
+    EM_DESMONTE
+    PEÇAS_REAPROVEITADAS
+    MATERIAL_RECICLAVEL
+    DESCARTE_SEGURO
+    BAIXA_DEFINITIVA
+    CANCELADO
+}
