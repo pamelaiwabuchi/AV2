@@ -1,52 +1,185 @@
 generator client {
-    provider = "prisma-client"
-    output   = "../src/generated/prisma"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 enum PapelUsuario {
-    ADMINISTRADOR
-    OPERADOR_CADASTRO
-    GESTOR_ALMOXARIFADO
-    AUDITOR
+  ADMINISTRADOR
+  OPERADOR_CADASTRO
+  GESTOR_ALMOXARIFADO
+  AUDITOR
+}
+
+enum StatusLote {
+  RECEBIDO
+  EM_TRIAGEM
+  TRIAGEM_CONCLUIDA
+  ENCAMINHADO
+  FINALIZADO
+  CANCELADO
+}
+
+enum StatusRastreamento {
+  AGUARDANDO_TRIAGEM
+  EM_TRIAGEM
+  AGUARDANDO_DESMONTE
+  EM_DESMONTE
+  PECAS_REAPROVEITADAS
+  MATERIAL_RECICLAVEL
+  DESCARTE_SEGURO
+  BAIXA_DEFINITIVA
+  CANCELADO
+}
+
+enum EstadoFisico {
+  NOVO
+  BOM_ESTADO
+  USADO_LEVE
+  USADO_MODERADO
+  DANIFICADO_LEVE
+  DANIFICADO_GRAVE
+  INSERVIVEL
+}
+
+enum TipoEquipamento {
+  COMPUTADOR_MESA
+  NOTEBOOK
+  MONITOR
+  IMPRESSORA
+  SERVIDOR
+  ROTEADOR
+  CABO_ESTRUTURADO
+  FONTE_ALIMENTACAO
 }
 
 model Organizacao {
-    id                  String @id @default(uuid()) @db.build
-    razaoSocial         String
-    cnpj                String @unique
-    inscricaoEstadual   String 
-    enderecoCompleto    String
-    telefone            String
-    email               String
-    dataCadastro        DateTime @default(now())
-    ativo               Boolean  @default(true)
-    versao              Int      @default(1)
+  id                String   @id @default(uuid()) @db.Uuid
+  razaoSocial       String
+  cnpj              String   @unique
+  inscricaoEstadual String
+  enderecoCompleto  String
+  telefone          String
+  email             String
+  dataCadastro      DateTime @default(now())
+  ativo             Boolean  @default(true)
+  versao            Int      @default(1)
 
-    contratos   Contrato []
-    lotes       Lote[]
+  contratos Contrato[]
+  lotes     Lote[]
 }
 
-Enum StatusLote {
-    RECEBIDO
-    EM_TRIAGEM
-    TRIAGEM_CONCLUIDA
-    ENCAMINHADO
-    FINALIZADO
-    CANCELADO
+model Contrato {
+  id                  String   @id @default(uuid()) @db.Uuid
+  organizacaoId       String   @db.Uuid
+  dataAssinatura      DateTime @db.Date
+  dataVencimento      DateTime @db.Date
+  clausulas           String[]
+  valorMensal         Decimal  @db.Decimal(12, 2)
+  renovacaoAutomatica Boolean
+  versao              Int      @default(1)
+
+  organizacao Organizacao @relation(fields: [organizacaoId], references: [id])
 }
 
-Enum StatusRastreamento {
-    AGUARDANDO_TRIAGEM
-    EM_TRIAGEM
-    AGUARDANDO_DESMONTE
-    EM_DESMONTE
-    PEÇAS_REAPROVEITADAS
-    MATERIAL_RECICLAVEL
-    DESCARTE_SEGURO
-    BAIXA_DEFINITIVA
-    CANCELADO
+model Lote {
+  id                  String     @id @default(uuid()) @db.Uuid
+  dataEntrada         DateTime   @db.Date
+  organizacaoId       String     @db.Uuid
+  notaFiscal          String
+  transportadora      String
+  statusProcessamento StatusLote @default(RECEBIDO)
+  observacoes         String?
+  versao              Int        @default(1)
+
+  organizacao  Organizacao   @relation(fields: [organizacaoId], references: [id])
+  equipamentos Equipamento[]
+}
+
+model Equipamento {
+  id                  String             @id @default(uuid()) @db.Uuid
+  codigoBarrasInterno String             @unique
+  tipo                TipoEquipamento
+  marca               String
+  modelo              String
+  anoFabricacao       Int
+  estadoFisico        EstadoFisico
+  pesoQuilogramas     Decimal            @db.Decimal(12, 3)
+  loteId              String             @db.Uuid
+  posicaoNoLote       Int
+  statusRastreamento  StatusRastreamento @default(AGUARDANDO_TRIAGEM)
+  destinoId           String?            @db.Uuid
+  versao              Int                @default(1)
+
+  lote                  Lote           @relation(fields: [loteId], references: [id])
+  destino               Destino?       @relation(fields: [destinoId], references: [id])
+  historicoMovimentacao Movimentacao[]
+}
+
+model Movimentacao {
+  id            String              @id @default(uuid()) @db.Uuid
+  equipamentoId String              @db.Uuid
+  dataHora      DateTime            @default(now())
+  origem        StatusRastreamento?
+  destino       StatusRastreamento
+  responsavelId String              @db.Uuid
+  observacao    String?
+
+  equipamento Equipamento @relation(fields: [equipamentoId], references: [id])
+  responsavel Usuario     @relation(fields: [responsavelId], references: [id])
+}
+
+model Usuario {
+  id           String       @id @default(uuid()) @db.Uuid
+  nome         String
+  login        String       @unique
+  hashSenha    String
+  papel        PapelUsuario
+  ultimoAcesso DateTime     @default(now())
+  ativo        Boolean      @default(true)
+  versao       Int          @default(1)
+
+  movimentacoes Movimentacao[]
+}
+
+model Destino {
+  id               String   @id @default(uuid()) @db.Uuid
+  razaoSocial      String
+  cnpj             String   @unique
+  enderecoCompleto String
+  telefone         String
+  email            String
+  dataCadastro     DateTime @default(now())
+  ativo            Boolean  @default(true)
+  versao           Int      @default(1)
+
+  equipamentos Equipamento[]
+}
+
+model Parametros {
+  id                          String  @id @default(uuid()) @db.Uuid
+  aliquotaImposto             Decimal @db.Decimal(5, 2)
+  depreciacaoComputadorMesa   Decimal @db.Decimal(5, 2)
+  depreciacaoNotebook         Decimal @db.Decimal(5, 2)
+  depreciacaoMonitor          Decimal @db.Decimal(5, 2)
+  depreciacaoImpressora       Decimal @db.Decimal(5, 2)
+  depreciacaoServidor         Decimal @db.Decimal(5, 2)
+  depreciacaoRoteador         Decimal @db.Decimal(5, 2)
+  depreciacaoCaboEstruturado  Decimal @db.Decimal(5, 2)
+  depreciacaoFonteAlimentacao Decimal @db.Decimal(5, 2)
+  versao                      Int     @default(1)
+}
+
+model Auditoria {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tabela      String
+  operacao    String
+  registroId  String   @db.Uuid
+  usuarioId   String?  @db.Uuid
+  dadosAntes  Json?
+  dadosDepois Json?
+  dataHora    DateTime @default(now())
 }
