@@ -6,6 +6,7 @@ const ID_DE_EXEMPLO = "00000000-0000-0000-0000-000000000000";
 export const grupos = [
     { name: "Autenticação", description: "Login, troca da própria senha e perfil" },
     { name: "Usuários", description: "Cadastro de usuários (só ADMINISTRADOR)" },
+    { name: "Departamentos", description: "Setores da empresa e seus funcionários (só ADMINISTRADOR)" },
     { name: "Organizações", description: "Clientes que enviam equipamentos" },
     { name: "Contratos", description: "Contratos de coleta das organizações" },
     { name: "Destinos", description: "Parceiros que recebem os equipamentos (reciclagem, peças, descarte)" },
@@ -21,6 +22,7 @@ export const grupos = [
 const grupoPorCaminho: Record<string, string> = {
     auth: "Autenticação",
     usuarios: "Usuários",
+    departamentos: "Departamentos",
     organizacoes: "Organizações",
     contratos: "Contratos",
     destinos: "Destinos",
@@ -51,10 +53,17 @@ export const resumos: Record<string, string> = {
     "PATCH /auth/senha": "Troca a própria senha; obrigatório no primeiro acesso (todos)",
     "GET /auth/perfil": "Mostra os dados do usuário logado (todos)",
 
-    "GET /usuarios": "Lista os usuários; busca por nome ou login e filtros de papel, ativo e bloqueado (ADMINISTRADOR)",
+    "GET /usuarios": "Lista os usuários; busca por nome ou login e filtros de papel, departamento (id ou nome), ativo e bloqueado (ADMINISTRADOR)",
     "GET /usuarios/:id": "Mostra um usuário (ADMINISTRADOR)",
-    "POST /usuarios": "Cria um usuário com senha provisória (ADMINISTRADOR)",
-    "PATCH /usuarios/:id": "Altera nome, papel e/ou ativo; ativo false desativa (ADMINISTRADOR)",
+    "GET /usuarios/login/:login": "Mostra um usuário pelo login, ex.: ana.operadora (ADMINISTRADOR)",
+    "POST /usuarios": "Cria um usuário com senha provisória; o departamentoId vem de GET /departamentos (ADMINISTRADOR)",
+    "PATCH /usuarios/:id": "Altera nome, papel, departamento e/ou ativo; ativo false desativa (ADMINISTRADOR)",
+
+    "GET /departamentos": "Lista os departamentos com a quantidade de usuários; busca por nome e filtro ativo (ADMINISTRADOR)",
+    "GET /departamentos/:id": "Mostra um departamento (ADMINISTRADOR)",
+    "GET /departamentos/:id/usuarios": "Lista os usuários ativos do departamento; busca por nome ou login (ADMINISTRADOR)",
+    "POST /departamentos": "Cria um departamento; o nome não pode repetir (ADMINISTRADOR)",
+    "PATCH /departamentos/:id": "Altera o nome e/ou ativo; desativado não recebe usuário novo (ADMINISTRADOR)",
     "PATCH /usuarios/:id/senha": "Redefine a senha de alguém; ela volta a ser provisória (ADMINISTRADOR)",
 
     "GET /organizacoes": "Lista as organizações; busca por razão social ou CNPJ (OPERADOR_CADASTRO, AUDITOR)",
@@ -96,7 +105,7 @@ export const resumos: Record<string, string> = {
     "POST /equipamentos/codigo/:codigo/movimentar": "Muda o status de um equipamento pelo código de barras (GESTOR)",
     "POST /equipamentos/movimentar-varios": "Muda o status de vários equipamentos pelos códigos de barras; tudo ou nada (GESTOR)",
 
-    "GET /movimentacoes": "Lista as movimentações; filtros de período, status de destino e responsável (GESTOR, AUDITOR)",
+    "GET /movimentacoes": "Lista as movimentações; filtros de período, status de destino e responsável (id ou login) (GESTOR, AUDITOR)",
 
     "GET /painel": "Resumo com os números que interessam ao seu papel (todos)",
     "GET /relatorios/destinacao": "Kg por tipo de destinação e parceiro, de uma organização ou de todas (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
@@ -104,7 +113,7 @@ export const resumos: Record<string, string> = {
     "GET /organizacoes/:id/certificado": "Baixa o certificado em PDF com os lotes da organização finalizados no período (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /relatorios/financeiro": "Receita, impostos e receita líquida por organização (AUDITOR)",
 
-    "GET /auditoria": "Histórico de todas as alterações; filtros de período, tabela, registro e usuário (AUDITOR)",
+    "GET /auditoria": "Histórico de todas as alterações; filtros de período, tabela, registro e usuário (id ou login) (AUDITOR)",
     "GET /parametros": "Mostra alíquota, depreciação e dias de lote parado (AUDITOR)",
     "PATCH /parametros": "Altera os parâmetros globais (ADMINISTRADOR)",
 
@@ -118,9 +127,12 @@ export const exemplos: Record<string, object> = {
     "POST /auth/login": { login: "admin", senha: "troque-esta-senha" },
     "PATCH /auth/senha": { senhaAtual: "troque-esta-senha", novaSenha: "Admin2026" },
 
-    "POST /usuarios": { nome: "Ana Souza", login: "ana.souza", senha: "Greencode1", papel: "OPERADOR_CADASTRO" },
+    "POST /usuarios": { nome: "Ana Souza", login: "ana.souza", senha: "Greencode1", papel: "OPERADOR_CADASTRO", departamentoId: ID_DE_EXEMPLO },
     "PATCH /usuarios/:id": { nome: "Ana Souza Lima", versao: 1 },
     "PATCH /usuarios/:id/senha": { novaSenha: "Greencode1" },
+
+    "POST /departamentos": { nome: "Logística" },
+    "PATCH /departamentos/:id": { nome: "Logística e Transporte", versao: 1 },
 
     "POST /organizacoes": {
         razaoSocial: "Mercado Bom Preço Ltda",

@@ -118,7 +118,7 @@ export async function trocarSenha(idUsuario: string, senhaAtual: string, novaSen
 }
 
 export async function buscarPerfil(idUsuario: string) {
-    const usuario = await usuarioRepository.buscarUsuarioPorId(idUsuario);
+    const usuario = await usuarioRepository.buscarUsuarioSemSenha(idUsuario);
 
     if (!usuario) {
         throw new ErroNaoEncontrado("Usuário não encontrado");
@@ -129,6 +129,7 @@ export async function buscarPerfil(idUsuario: string) {
         nome: usuario.nome,
         login: usuario.login,
         papel: usuario.papel,
+        departamento: usuario.departamento.nome,
         ativo: usuario.ativo,
         ultimoAcesso: usuario.ultimoAcesso,
         precisaTrocarSenha: usuario.precisaTrocarSenha,

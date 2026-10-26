@@ -198,14 +198,14 @@ Usa os dados do seed. Faça primeiro os passos 1 a 5 acima, com o `admin`.
 
 ### Dados de exemplo do seed
 
-| Login | Papel | Senha provisória |
-|---|---|---|
-| `admin` | ADMINISTRADOR | a do `.env` (`ADMIN_SENHA`) |
-| `ana.operadora` | OPERADOR_CADASTRO | `Greencode1` |
-| `bruno.gestor` | GESTOR_ALMOXARIFADO | `Greencode1` |
-| `carla.auditora` | AUDITOR | `Greencode1` |
+| Login | Papel | Departamento | Senha provisória |
+|---|---|---|---|
+| `admin` | ADMINISTRADOR | TI | a do `.env` (`ADMIN_SENHA`) |
+| `ana.operadora` | OPERADOR_CADASTRO | Comercial | `Greencode1` |
+| `bruno.gestor` | GESTOR_ALMOXARIFADO | Almoxarifado | `Greencode1` |
+| `carla.auditora` | AUDITOR | Financeiro | `Greencode1` |
 
-O seed também cria 3 organizações (uma delas, o Hospital Bem Estar, sem contrato: não pode receber lote), 3 contratos, 2 destinos parceiros e 4 lotes, um em cada situação: **finalizado**, **em triagem**, **recebido e parado há 35 dias** e **cancelado**. Os equipamentos vão de `GC-2026-000001` a `GC-2026-000009` (o ano é o do dia em que o seed rodou).
+O seed cria 8 departamentos (Administrativo, RH, Financeiro, Comercial, Almoxarifado, Triagem, Reciclagem e TI). Também cria 3 organizações (uma delas, o Hospital Bem Estar, sem contrato: não pode receber lote), 3 contratos, 2 destinos parceiros e 4 lotes, um em cada situação: **finalizado**, **em triagem**, **recebido e parado há 35 dias** e **cancelado**. Os equipamentos vão de `GC-2026-000001` a `GC-2026-000009` (o ano é o do dia em que o seed rodou).
 
 ### Permissões (princípio do menor privilégio)
 
@@ -213,7 +213,7 @@ O **ADMINISTRADOR** pode tudo. Os demais:
 
 | Módulo | OPERADOR_CADASTRO | GESTOR_ALMOXARIFADO | AUDITOR |
 |---|---|---|---|
-| Usuários | — | — | — |
+| Usuários e departamentos | — | — | — |
 | Organizações | tudo | só o resumo (ativas com contrato vigente) | consulta |
 | Contratos | tudo | — | consulta |
 | Destinos | tudo | consulta (só os ativos) | consulta |
@@ -245,11 +245,22 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 
 | Rota | O que faz |
 |---|---|
-| `GET /usuarios?pagina=1&busca=&papel=&ativo=&bloqueado=` | Lista, com busca por nome ou login e filtros (ex.: `bloqueado=true` mostra quem errou a senha 5 vezes) |
+| `GET /usuarios?pagina=1&busca=&papel=&departamentoId=&departamento=&ativo=&bloqueado=` | Lista, com busca por nome ou login e filtros (ex.: `busca=ana&departamento=rh` mostra as Anas do RH; `bloqueado=true` mostra quem errou a senha 5 vezes) |
 | `GET /usuarios/:id` | Mostra um |
-| `POST /usuarios` | Cria, com senha provisória |
-| `PATCH /usuarios/:id` | Edita nome, papel e/ou ativo (desativar = `ativo: false`) |
+| `GET /usuarios/login/:login` | Mostra um pelo login (ex.: `ana.operadora`), sem precisar do id |
+| `POST /usuarios` | Cria, com senha provisória e departamento (`departamentoId`) |
+| `PATCH /usuarios/:id` | Edita nome, papel, departamento e/ou ativo (desativar = `ativo: false`) |
 | `PATCH /usuarios/:id/senha` | Redefine a senha ("esqueci a senha") e desbloqueia a conta |
+
+**Departamentos** (só administrador)
+
+| Rota | O que faz |
+|---|---|
+| `GET /departamentos?pagina=1&busca=&ativo=` | Lista, com a quantidade de usuários de cada um |
+| `GET /departamentos/:id` | Mostra um |
+| `GET /departamentos/:id/usuarios?pagina=1&busca=` | Funcionários ativos do departamento (nome, login, papel) |
+| `POST /departamentos` | Cria; o nome não pode repetir (`RH` e `rh` contam como iguais) |
+| `PATCH /departamentos/:id` | Edita o nome e/ou ativo (desativar = `ativo: false`) |
 
 **Organizações, contratos e destinos**
 
@@ -289,7 +300,7 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `POST /equipamentos/:id/corrigir` | Desfaz uma movimentação errada e as seguintes (`movimentacaoId`, `justificativa`, `versao`) |
 | `POST /equipamentos/codigo/:codigo/movimentar` | Muda o status pelo código de barras, ex.: `GC-2026-000007` |
 | `POST /equipamentos/movimentar-varios` | Muda o status de vários de uma vez, pelos códigos de barras (`"codigos": ["GC-2026-000007", "GC-2026-000008"]`), tudo ou nada |
-| `GET /movimentacoes?pagina=1&inicio=&fim=&destino=&responsavelId=` | Todas as movimentações, com filtros (ex.: tudo o que foi para `DESCARTE_SEGURO` no mês) |
+| `GET /movimentacoes?pagina=1&inicio=&fim=&destino=&responsavelId=&responsavelLogin=` | Todas as movimentações, com filtros (ex.: tudo o que foi para `DESCARTE_SEGURO` no mês, ou tudo o que `bruno.gestor` fez) |
 
 **Painel, relatórios, auditoria e parâmetros**
 
@@ -300,7 +311,7 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `GET /relatorios/financeiro?inicio=&fim=` | Receita bruta, impostos e líquida por organização, no período |
 | `GET /lotes/:id/certificado` | Baixa o certificado de destinação final (PDF) de um lote FINALIZADO |
 | `GET /organizacoes/:id/certificado?inicio=&fim=` | Baixa o certificado (PDF) com os lotes da organização finalizados no período |
-| `GET /auditoria?pagina=1&inicio=&fim=&tabela=&registroId=&usuarioId=` | Registro de todas as alterações, com filtro de período |
+| `GET /auditoria?pagina=1&inicio=&fim=&tabela=&registroId=&usuarioId=&usuarioLogin=` | Registro de todas as alterações, com filtro de período; o usuário pode ser informado pelo id ou pelo login |
 | `GET /parametros` · `PATCH /parametros` | Consulta · altera alíquota, depreciação e dias de lote parado |
 
 As datas usam o formato `AAAA-MM-DD`. As listagens são paginadas (20 por página; 50 na auditoria) e informam `pagina`, `totalPaginas` e `total`.
@@ -339,7 +350,7 @@ O caminho de uma requisição, por exemplo `POST /lotes`:
 
 ### Modelos
 
-`Usuario`, `Organizacao`, `Contrato`, `Destino`, `Lote`, `Equipamento`, `Movimentacao`, `Parametros` e `Auditoria`.
+`Usuario`, `Departamento`, `Organizacao`, `Contrato`, `Destino`, `Lote`, `Equipamento`, `Movimentacao`, `Parametros` e `Auditoria`.
 
 - Organizacao 1 → N Contrato
 - Organizacao 1 → N Lote
@@ -347,6 +358,7 @@ O caminho de uma requisição, por exemplo `POST /lotes`:
 - Equipamento 1 → N Movimentacao
 - Destino 1 → N Equipamento
 - Usuario 1 → N Movimentacao (responsável)
+- Departamento 1 → N Usuario
 
 Todos os ids são **UUID**.
 
@@ -411,9 +423,10 @@ Todos os ids são **UUID**.
 - Toda senha criada ou redefinida pelo administrador é **provisória**: até trocá-la, a pessoa só consegue trocar a senha e ver o próprio perfil.
 - "Esqueci a senha": a pessoa fala com o administrador, que redefine a senha e desbloqueia a conta.
 - O administrador não pode desativar o próprio usuário.
+- Todo usuário pertence a um **departamento** (setor da empresa). Departamento e papel são independentes: o papel diz o que a pessoa pode fazer no sistema; o departamento, onde ela trabalha. Só o administrador cadastra departamentos e vê os funcionários de cada um.
 
 ### Nada é apagado de verdade
-- Usuário, organização e destino são **desativados** (`ativo = false`). Organização desativada não recebe lote; destino desativado não recebe equipamento.
+- Usuário, departamento, organização e destino são **desativados** (`ativo = false`). Departamento desativado não recebe usuário novo (quem já está nele continua); organização desativada não recebe lote; destino desativado não recebe equipamento.
 - Lote e equipamento são **cancelados** (status `CANCELADO`).
 - A única exceção é o contrato futuro, que ainda não começou.
 
@@ -440,7 +453,7 @@ Como na AV1: cada contrato entra com **valor mensal ÷ 30 × dias vigentes dentr
 | Versionamento otimista | Campo `versao` em Usuario, Organizacao, Contrato, Destino, Lote, Equipamento e Parametros. A alteração só acontece se a versão enviada for a atual (`updateMany where { id, versao }`); senão responde **409** |
 | Seed | `prisma/seed.ts`, com massa de dados em estados variados. Ele usa os próprios services, então os dados passam pelas mesmas regras do sistema |
 | Unicidade | `@unique` em CNPJ (Organizacao e Destino), `codigoBarrasInterno` e `login`. Os services conferem antes de gravar, e o banco garante mesmo assim (erro `P2002` → 409) |
-| Triggers ou constraints | Trigger de **auditoria** em 8 tabelas e trigger que **impede alterar ou apagar** Auditoria e Movimentacao |
+| Triggers ou constraints | Trigger de **auditoria** em 9 tabelas e trigger que **impede alterar ou apagar** Auditoria e Movimentacao |
 | Porta por variável de ambiente | `PORT` no `.env` |
 | Graceful shutdown | `src/server.ts` trata `SIGINT` e `SIGTERM` |
 | API documentada | Swagger em `/docs`, gerado a partir dos JSON Schemas das rotas |

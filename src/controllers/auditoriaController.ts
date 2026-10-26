@@ -5,12 +5,14 @@ import { executarTransacao } from "../lib/transacao.js";
 import { filtroDePeriodo } from "../utils/datas.js";
 import * as auditoriaRepository from "../repositories/auditoriaRepository.js";
 import * as parametrosRepository from "../repositories/parametrosRepository.js";
+import * as usuarioService from "../services/usuarioService.js";
 import type { FiltrosAuditoria } from "../repositories/auditoriaRepository.js";
 import type { DadosParametros } from "../repositories/parametrosRepository.js";
 import { exigirAlgumCampo } from "../utils/alteracoes.js";
 
 interface ConsultaAuditoria extends FiltrosAuditoria {
     pagina: number;
+    usuarioLogin?: string;
     inicio?: string;
     fim?: string;
 }
@@ -29,6 +31,7 @@ const esquemaAuditoria = {
             tabela: { type: "string" },
             registroId: { type: "string", format: "uuid" },
             usuarioId: { type: "string", format: "uuid" },
+            usuarioLogin: { type: "string" },
             inicio: { type: "string", format: "date" },
             fim: { type: "string", format: "date" },
         },
@@ -64,7 +67,14 @@ export async function auditoriaController(app: FastifyInstance) {
     const opcoesParametros = { schema: esquemaParametros, onRequest: somenteAdmin };
 
     app.get<{ Querystring: ConsultaAuditoria }>("/auditoria", opcoesAuditoria, async (request) => {
-        const { pagina, inicio, fim, ...filtros } = request.query;
+        const { pagina, inicio, fim, usuarioLogin, ...filtros } = request.query;
+
+        // A Auditoria guarda só o id de quem alterou; o login é trocado pelo id aqui.
+        if (usuarioLogin) {
+            const usuario = await usuarioService.buscarPorLogin(usuarioLogin);
+            filtros.usuarioId = usuario.id;
+        }
+
         return auditoriaRepository.listarAuditoria(pagina, { ...filtros, dataHora: filtroDePeriodo(inicio, fim) });
     });
 

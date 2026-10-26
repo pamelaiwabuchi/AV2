@@ -3,7 +3,7 @@ import { PapelUsuario } from "../generated/prisma/enums.js";
 import * as usuarioService from "../services/usuarioService.js";
 import { exigirPapel } from "../plugins/autenticacao.js";
 import { esquemaId, textoObrigatorio } from "../utils/esquemas.js";
-import type { PedidoAlteracaoUsuario } from "../services/usuarioService.js";
+import type { PedidoAlteracaoUsuario, PedidoNovoUsuario } from "../services/usuarioService.js";
 import type { FiltrosUsuario } from "../repositories/usuarioRepository.js";
 import { exigirAlgumCampo } from "../utils/alteracoes.js";
 
@@ -24,15 +24,14 @@ const esquemaListar = {
             papel: { type: "string", enum: Object.values(PapelUsuario) },
             ativo: { type: "boolean" },
             bloqueado: { type: "boolean" },
+            departamentoId: { type: "string", format: "uuid" },
+            departamento: { type: "string" },
         },
     },
 };
 
-interface CorpoCriar {
-    nome: string;
+interface ParametrosLogin {
     login: string;
-    senha: string;
-    papel: string;
 }
 
 interface CorpoAtualizar extends PedidoAlteracaoUsuario {
@@ -45,15 +44,26 @@ interface CorpoSenha {
 
 const somenteAdmin = exigirPapel();
 
+const esquemaLogin = {
+    params: {
+        type: "object",
+        required: ["login"],
+        properties: {
+            login: textoObrigatorio,
+        },
+    },
+};
+
 const esquemaCriar = {
     body: {
         type: "object",
-        required: ["nome", "login", "senha", "papel"],
+        required: ["nome", "login", "senha", "papel", "departamentoId"],
         properties: {
             nome: textoObrigatorio,
             login: textoObrigatorio,
             senha: textoObrigatorio,
             papel: { type: "string", enum: Object.values(PapelUsuario) },
+            departamentoId: { type: "string", format: "uuid" },
         },
     },
 };
@@ -68,6 +78,7 @@ const esquemaAtualizar = {
             nome: textoObrigatorio,
             papel: { type: "string", enum: Object.values(PapelUsuario) },
             ativo: { type: "boolean" },
+            departamentoId: { type: "string", format: "uuid" },
             versao: { type: "integer" },
         },
     },
@@ -87,6 +98,7 @@ const esquemaSenha = {
 export async function usuarioController(app: FastifyInstance) {
     const opcoesListar = { schema: esquemaListar, onRequest: somenteAdmin };
     const opcoesBuscar = { schema: { params: esquemaId }, onRequest: somenteAdmin };
+    const opcoesBuscarLogin = { schema: esquemaLogin, onRequest: somenteAdmin };
     const opcoesCriar = { schema: esquemaCriar, onRequest: somenteAdmin };
     const opcoesAtualizar = { schema: esquemaAtualizar, onRequest: somenteAdmin };
     const opcoesSenha = { schema: esquemaSenha, onRequest: somenteAdmin };
@@ -100,9 +112,12 @@ export async function usuarioController(app: FastifyInstance) {
         return usuarioService.buscar(request.params.id);
     });
 
-    app.post<{ Body: CorpoCriar }>("/usuarios", opcoesCriar, async (request, reply) => {
-        const { nome, login, senha, papel } = request.body;
-        const usuario = await usuarioService.criar(nome, login, senha, papel, request.user.id);
+    app.get<{ Params: ParametrosLogin }>("/usuarios/login/:login", opcoesBuscarLogin, async (request) => {
+        return usuarioService.buscarPorLogin(request.params.login);
+    });
+
+    app.post<{ Body: PedidoNovoUsuario }>("/usuarios", opcoesCriar, async (request, reply) => {
+        const usuario = await usuarioService.criar(request.body, request.user.id);
 
         return reply.status(201).send(usuario);
     });

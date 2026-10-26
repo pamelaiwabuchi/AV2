@@ -8,6 +8,7 @@ const TAMANHO_PAGINA = 50;
 export interface FiltrosMovimentacao {
     destino?: StatusRastreamento;
     responsavelId?: string;
+    responsavel?: { login: string };
     dataHora?: { gte?: Date; lt?: Date };
 }
 

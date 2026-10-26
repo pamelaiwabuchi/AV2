@@ -11,6 +11,29 @@ import type { StatusRastreamento } from "../src/generated/prisma/enums.js";
 
 const CUSTO_BCRYPT = 10;
 
+const DEPARTAMENTOS = ["Administrativo", "RH", "Financeiro", "Comercial", "Almoxarifado", "Triagem", "Reciclagem", "TI"];
+
+// Os departamentos vêm antes do administrador, porque todo usuário precisa de um.
+async function criarDepartamentos() {
+    const quantidade = await prisma.departamento.count();
+
+    if (quantidade > 0) {
+        console.log("Departamentos já existem, nada foi alterado.");
+        return;
+    }
+
+    await prisma.departamento.createMany({
+        data: DEPARTAMENTOS.map((nome) => ({ nome })),
+    });
+
+    console.log(`${DEPARTAMENTOS.length} departamentos criados.`);
+}
+
+async function idDoDepartamento(nome: string) {
+    const departamento = await prisma.departamento.findUniqueOrThrow({ where: { nome } });
+    return departamento.id;
+}
+
 async function criarAdministrador() {
     const login = process.env.ADMIN_LOGIN;
     const senha = process.env.ADMIN_SENHA;
@@ -34,6 +57,7 @@ async function criarAdministrador() {
             login,
             hashSenha,
             papel: "ADMINISTRADOR",
+            departamentoId: await idDoDepartamento("TI"),
         },
     });
 
@@ -91,10 +115,15 @@ async function mover(idAdmin: string, ids: string[], novoStatus: StatusRastreame
     });
 }
 
+async function criarUsuarioDeExemplo(nome: string, login: string, papel: string, departamento: string, idAdmin: string) {
+    const departamentoId = await idDoDepartamento(departamento);
+    await usuarioService.criar({ nome, login, senha: "Greencode1", papel, departamentoId }, idAdmin);
+}
+
 async function criarUsuariosDeExemplo(idAdmin: string) {
-    await usuarioService.criar("Ana Operadora", "ana.operadora", "Greencode1", "OPERADOR_CADASTRO", idAdmin);
-    await usuarioService.criar("Bruno Gestor", "bruno.gestor", "Greencode1", "GESTOR_ALMOXARIFADO", idAdmin);
-    await usuarioService.criar("Carla Auditora", "carla.auditora", "Greencode1", "AUDITOR", idAdmin);
+    await criarUsuarioDeExemplo("Ana Operadora", "ana.operadora", "OPERADOR_CADASTRO", "Comercial", idAdmin);
+    await criarUsuarioDeExemplo("Bruno Gestor", "bruno.gestor", "GESTOR_ALMOXARIFADO", "Almoxarifado", idAdmin);
+    await criarUsuarioDeExemplo("Carla Auditora", "carla.auditora", "AUDITOR", "Financeiro", idAdmin);
 }
 
 async function criarDadosDeExemplo() {
@@ -162,6 +191,7 @@ async function criarDadosDeExemplo() {
 }
 
 async function main() {
+    await criarDepartamentos();
     await criarAdministrador();
     await criarParametros();
     await criarDadosDeExemplo();

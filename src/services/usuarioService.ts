@@ -3,6 +3,7 @@ import { PapelUsuario } from "../generated/prisma/enums.js";
 import { ErroConflito, ErroNaoEncontrado, ErroRegraNegocio } from "../errors/erros.js";
 import { validarForcaSenha } from "./authService.js";
 import * as usuarioRepository from "../repositories/usuarioRepository.js";
+import * as departamentoRepository from "../repositories/departamentoRepository.js";
 import { executarTransacao } from "../lib/transacao.js";
 
 const CUSTO_BCRYPT = 10;
@@ -11,6 +12,15 @@ export interface PedidoAlteracaoUsuario {
     nome?: string;
     papel?: string;
     ativo?: boolean;
+    departamentoId?: string;
+}
+
+export interface PedidoNovoUsuario {
+    nome: string;
+    login: string;
+    senha: string;
+    papel: string;
+    departamentoId: string;
 }
 
 function validarPapel(papel: string) {
@@ -21,6 +31,15 @@ function validarPapel(papel: string) {
     }
 
     return papel as PapelUsuario;
+}
+
+// Departamento desativado não recebe usuário novo (quem já está nele continua).
+async function garantirDepartamentoAtivo(departamentoId: string) {
+    const departamento = await departamentoRepository.buscarDepartamentoPorId(departamentoId);
+
+    if (!departamento || !departamento.ativo) {
+        throw new ErroRegraNegocio("Departamento não encontrado ou desativado");
+    }
 }
 
 async function buscarOuFalhar(id: string) {
@@ -41,20 +60,38 @@ export async function buscar(id: string) {
     return buscarOuFalhar(id);
 }
 
-export async function criar(nome: string, login: string, senha: string, papel: string, idAdmin: string) {
-    const papelValido = validarPapel(papel);
-    validarForcaSenha(senha);
+export async function buscarPorLogin(login: string) {
+    const usuario = await usuarioRepository.buscarUsuarioSemSenhaPorLogin(login);
 
-    const existente = await usuarioRepository.buscarUsuarioPorLogin(login);
-
-    if (existente) {
-        throw new ErroConflito(`O login "${login}" já está em uso`);
+    if (!usuario) {
+        throw new ErroNaoEncontrado(`Nenhum usuário com o login "${login}"`);
     }
 
-    const hashSenha = await bcrypt.hash(senha, CUSTO_BCRYPT);
+    return usuario;
+}
+
+export async function criar(pedido: PedidoNovoUsuario, idAdmin: string) {
+    const papelValido = validarPapel(pedido.papel);
+    validarForcaSenha(pedido.senha);
+    await garantirDepartamentoAtivo(pedido.departamentoId);
+
+    const existente = await usuarioRepository.buscarUsuarioPorLogin(pedido.login);
+
+    if (existente) {
+        throw new ErroConflito(`O login "${pedido.login}" já está em uso`);
+    }
+
+    const hashSenha = await bcrypt.hash(pedido.senha, CUSTO_BCRYPT);
+    const dados = {
+        nome: pedido.nome,
+        login: pedido.login,
+        hashSenha,
+        papel: papelValido,
+        departamentoId: pedido.departamentoId,
+    };
 
     return executarTransacao(idAdmin, async (tx) => {
-        return usuarioRepository.criarUsuario(tx, nome, login, hashSenha, papelValido);
+        return usuarioRepository.criarUsuario(tx, dados);
     });
 }
 
@@ -70,6 +107,10 @@ export async function atualizar(id: string, idAdmin: string, versao: number, ped
 
     if (papel !== undefined) {
         alteracoes.papel = validarPapel(papel);
+    }
+
+    if (pedido.departamentoId !== undefined) {
+        await garantirDepartamentoAtivo(pedido.departamentoId);
     }
 
     const atualizou = await executarTransacao(idAdmin, async (tx) => {

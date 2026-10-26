@@ -11,13 +11,18 @@ export interface FiltrosUsuario {
     papel?: PapelUsuario;
     ativo?: boolean;
     bloqueado?: boolean;
+    departamentoId?: string;
+    departamento?: string;
 }
 
 export interface AlteracoesUsuario {
     nome?: string;
     papel?: PapelUsuario;
     ativo?: boolean;
+    departamentoId?: string;
 }
+
+const comDepartamento = { departamento: { select: { id: true, nome: true } } };
 
 export async function buscarUsuarioPorLogin(login: string) {
     return prisma.usuario.findUnique({ where: { login } });
@@ -73,6 +78,14 @@ function montarFiltroUsuarios(filtros: FiltrosUsuario) {
         condicoes.push({ papel: filtros.papel });
     }
 
+    if (filtros.departamentoId) {
+        condicoes.push({ departamentoId: filtros.departamentoId });
+    }
+
+    if (filtros.departamento) {
+        condicoes.push({ departamento: { nome: { contains: filtros.departamento, mode: "insensitive" } } });
+    }
+
     if (filtros.ativo !== undefined) {
         condicoes.push({ ativo: filtros.ativo });
     }
@@ -95,6 +108,7 @@ export async function listarUsuarios(pagina: number, filtros: FiltrosUsuario) {
         prisma.usuario.findMany({
             where,
             omit: { hashSenha: true },
+            include: comDepartamento,
             orderBy: { nome: "asc" },
             skip: (pagina - 1) * TAMANHO_PAGINA,
             take: TAMANHO_PAGINA,
@@ -109,13 +123,31 @@ export async function buscarUsuarioSemSenha(id: string) {
     return prisma.usuario.findUnique({
         where: { id },
         omit: { hashSenha: true },
+        include: comDepartamento,
     });
 }
 
-export async function criarUsuario(tx: Transacao, nome: string, login: string, hashSenha: string, papel: PapelUsuario) {
-    return tx.usuario.create({
-        data: { nome, login, hashSenha, papel },
+export async function buscarUsuarioSemSenhaPorLogin(login: string) {
+    return prisma.usuario.findUnique({
+        where: { login },
         omit: { hashSenha: true },
+        include: comDepartamento,
+    });
+}
+
+export interface DadosUsuarioNovo {
+    nome: string;
+    login: string;
+    hashSenha: string;
+    papel: PapelUsuario;
+    departamentoId: string;
+}
+
+export async function criarUsuario(tx: Transacao, dados: DadosUsuarioNovo) {
+    return tx.usuario.create({
+        data: dados,
+        omit: { hashSenha: true },
+        include: comDepartamento,
     });
 }
 

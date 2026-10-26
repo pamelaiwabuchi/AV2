@@ -66,6 +66,29 @@ test("gestor não lista usuários (403) e auditor não altera parâmetros (403)"
     assert.equal(resposta.statusCode, 403);
 });
 
+test("departamentos do seed e funcionários de um departamento (só ADMINISTRADOR)", async () => {
+    const lista = await pedir("/departamentos?busca=almoxarifado", tokenAdmin);
+    assert.equal(lista.statusCode, 200);
+    const almoxarifado = lista.json().itens[0];
+    assert.equal(almoxarifado.nome, "Almoxarifado");
+
+    const usuarios = await pedir(`/departamentos/${almoxarifado.id}/usuarios`, tokenAdmin);
+    const logins = usuarios.json().itens.map((usuario: { login: string }) => usuario.login);
+    assert.ok(logins.includes("bruno.gestor"));
+
+    assert.equal((await pedir("/departamentos", tokenGestor)).statusCode, 403);
+});
+
+test("usuário pode ser buscado pelo login e filtrado pelo nome do departamento", async () => {
+    const porLogin = await pedir("/usuarios/login/carla.auditora", tokenAdmin);
+    assert.equal(porLogin.statusCode, 200);
+    assert.equal(porLogin.json().departamento.nome, "Financeiro");
+
+    const filtrados = await pedir("/usuarios?departamento=comercial", tokenAdmin);
+    const logins = filtrados.json().itens.map((usuario: { login: string }) => usuario.login);
+    assert.ok(logins.includes("ana.operadora"));
+});
+
 test("listagem de usuários nunca devolve o hash da senha", async () => {
     const resposta = await pedir("/usuarios", tokenAdmin);
     assert.equal(resposta.statusCode, 200);
