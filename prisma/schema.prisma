@@ -92,6 +92,7 @@ model Lote {
   notaFiscal          String
   transportadora      String
   statusProcessamento StatusLote @default(RECEBIDO)
+  dataStatus          DateTime   @default(now())
   observacoes         String?
   versao              Int        @default(1)
 
@@ -100,19 +101,20 @@ model Lote {
 }
 
 model Equipamento {
-  id                  String             @id @default(uuid()) @db.Uuid
-  codigoBarrasInterno String             @unique
-  tipo                TipoEquipamento
-  marca               String
-  modelo              String
-  anoFabricacao       Int
-  estadoFisico        EstadoFisico
-  pesoQuilogramas     Decimal            @db.Decimal(12, 3)
-  loteId              String             @db.Uuid
-  posicaoNoLote       Int
-  statusRastreamento  StatusRastreamento @default(AGUARDANDO_TRIAGEM)
-  destinoId           String?            @db.Uuid
-  versao              Int                @default(1)
+  id                     String             @id @default(uuid()) @db.Uuid
+  codigoBarrasInterno    String             @unique
+  tipo                   TipoEquipamento
+  marca                  String
+  modelo                 String
+  anoFabricacao          Int
+  estadoFisico           EstadoFisico
+  justificativaAvaliacao String?
+  pesoQuilogramas        Decimal            @db.Decimal(12, 3)
+  loteId                 String             @db.Uuid
+  posicaoNoLote          Int
+  statusRastreamento     StatusRastreamento @default(AGUARDANDO_TRIAGEM)
+  destinoId              String?            @db.Uuid
+  versao                 Int                @default(1)
 
   lote                  Lote           @relation(fields: [loteId], references: [id])
   destino               Destino?       @relation(fields: [destinoId], references: [id])

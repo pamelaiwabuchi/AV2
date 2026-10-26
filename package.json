@@ -1,12 +1,13 @@
 {
   "name": "av2",
   "version": "1.0.0",
-  "description": "",
+  "description": "greencode - API de logística reversa de equipamentos eletrônicos (AV2)",
   "main": "index.js",
   "scripts": {
     "dev": "tsx src/server.ts",
-    "build": "",
-    "start": "node dist/server.js"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "tsx --test tests/*.test.ts"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,9 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@fastify/jwt": "^10.2.5",
+    "@fastify/swagger": "^9.9.2",
+    "@fastify/swagger-ui": "^6.1.2",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "bcrypt": "^6.0.0",

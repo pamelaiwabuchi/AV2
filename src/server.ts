@@ -1,20 +1,23 @@
-import Fastify from 'fastify'
+import "dotenv/config";
+import { criarApp } from "./app.js";
+import { prisma } from "./lib/prisma.js";
 
-const app = Fastify({
-    logger: true
-})
+const app = criarApp();
+const porta = Number(process.env.PORT ?? 3333);
 
-app.get('/health', async () => {
-    return {status: 'ok'}
-})
+async function encerrar(sinal: string) {
+    app.log.info(`Sinal ${sinal} recebido, encerrando o servidor`);
+    await app.close();
+    await prisma.$disconnect();
+    process.exit(0);
+}
 
-app.get('/resposta', async () => {
-    return {mensagem: 'greencode'}
-})
+process.on("SIGINT", encerrar);
+process.on("SIGTERM", encerrar);
 
 try {
-    await app.listen({ port: 3333, host: '0.0.0.0'})
+    await app.listen({ port: porta, host: "0.0.0.0" });
 } catch (erro) {
-    app.log.error(erro)
-    process.exit(1)
+    app.log.error(erro);
+    process.exit(1);
 }
