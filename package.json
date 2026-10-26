@@ -4,6 +4,7 @@
   "description": "greencode - API de logística reversa de equipamentos eletrônicos (AV2)",
   "main": "index.js",
   "scripts": {
+    "configurar": "node -e \"const fs = require('fs'); if (!fs.existsSync('.env')) fs.copyFileSync('.env.example', '.env')\"",
     "dev": "tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",

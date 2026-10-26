@@ -44,11 +44,12 @@ Há dois jeitos: com Docker (2.1), que sobe o banco e a API com um comando, ou i
 ```bash
 git clone https://github.com/pamelaiwabuchi/AV2.git
 cd AV2
-cp .env.example .env        # Windows: copy .env.example .env
 docker compose up -d --build
 ```
 
-Preencha o `.env` como explicado na [seção 2.3](#23-baixar-e-configurar-o-projeto) antes do último comando. O `DATABASE_URL` do `.env` é ignorado: o `docker-compose.yml` aponta a API para o banco do Docker.
+Os comandos são os mesmos no Linux e no Windows. O `.env` é opcional: sem ele, o `docker-compose.yml` usa valores padrão (administrador `admin` com a senha provisória `Greencode1`). Para usar outros valores, crie o `.env` como na [seção 2.3](#23-baixar-e-configurar-o-projeto); o `DATABASE_URL` dele é ignorado, porque o Compose aponta a API para o banco do Docker.
+
+> Em produção, defina um `JWT_SECRET` próprio no `.env`. O padrão do Compose serve só para testes.
 
 O `docker compose up` cria dois contêineres:
 
@@ -96,14 +97,10 @@ cd AV2
 npm install
 ```
 
-Copie o arquivo de exemplo de configuração:
+Crie o `.env` a partir do `.env.example` (funciona em qualquer sistema e não sobrescreve um `.env` que já exista):
 
 ```bash
-# Linux
-cp .env.example .env
-
-# Windows (Prompt de Comando)
-copy .env.example .env
+npm run configurar
 ```
 
 Abra o `.env` e preencha:

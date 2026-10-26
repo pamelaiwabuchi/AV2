@@ -15,10 +15,14 @@ services:
 
   api:
     build: .
-    env_file: .env
     environment:
       DATABASE_URL: postgresql://greencode:greencode@banco:5432/greencode
       PORT: 3333
+      JWT_SECRET: ${JWT_SECRET:-troque-por-um-texto-aleatorio-e-longo}
+      ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
+      ADMIN_SENHA: ${ADMIN_SENHA:-Greencode1}
+      EMPRESA_RAZAO_SOCIAL: ${EMPRESA_RAZAO_SOCIAL:-GreenCode Logística Reversa Ltda}
+      EMPRESA_CNPJ: ${EMPRESA_CNPJ:-47.638.125/0001-05}
     ports:
       - "3333:3333"
     depends_on:
