@@ -67,6 +67,21 @@ async function buscarOrganizacaoDoRelatorio(organizacaoId: string | undefined) {
     return { razaoSocial: organizacao.razaoSocial, cnpj: organizacao.cnpj };
 }
 
+interface Correcao {
+    equipamentoId: string;
+    desfezDesde: Date;
+    dataHora: Date;
+}
+
+// Uma movimentação foi desfeita se uma correção posterior voltou para antes dela.
+function foiDesfeita(movimentacao: { equipamentoId: string; dataHora: Date }, correcoes: Correcao[]) {
+    return correcoes.some((correcao) => {
+        return correcao.equipamentoId === movimentacao.equipamentoId
+            && correcao.desfezDesde <= movimentacao.dataHora
+            && movimentacao.dataHora < correcao.dataHora;
+    });
+}
+
 export async function relatorioDestinacao(organizacaoId: string | undefined, inicio: Date, fim: Date) {
     if (fim < inicio) {
         throw new ErroRegraNegocio("A data final precisa ser igual ou depois da data inicial");
@@ -75,7 +90,9 @@ export async function relatorioDestinacao(organizacaoId: string | undefined, ini
     const organizacao = await buscarOrganizacaoDoRelatorio(organizacaoId);
 
     const fimInclusivo = new Date(fim.getTime() + UM_DIA);
-    const destinacoes = await relatorioRepository.listarDestinacoes(organizacaoId, inicio, fimInclusivo);
+    const movimentacoes = await relatorioRepository.listarDestinacoes(organizacaoId, inicio, fimInclusivo);
+    const correcoes = await relatorioRepository.listarCorrecoesDosEquipamentos(movimentacoes.map((item) => item.equipamentoId));
+    const destinacoes = movimentacoes.filter((item) => !foiDesfeita(item, correcoes));
     const resumo: Record<string, { quantidade: number; kg: number }> = {};
     let kgTotal = 0;
 

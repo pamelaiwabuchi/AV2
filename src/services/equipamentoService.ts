@@ -8,6 +8,7 @@ import { STATUS_COM_DESTINO, ehStatusFinal, podeMudarStatus } from "../utils/reg
 import * as equipamentoRepository from "../repositories/equipamentoRepository.js";
 import * as destinoRepository from "../repositories/destinoRepository.js";
 import * as parametrosRepository from "../repositories/parametrosRepository.js";
+import * as loteRepository from "../repositories/loteRepository.js";
 import * as movimentacaoService from "./movimentacaoService.js";
 import type { DadosEquipamento, FiltrosEquipamento } from "../repositories/equipamentoRepository.js";
 import type { PedidoMudanca } from "./movimentacaoService.js";
@@ -167,6 +168,75 @@ export async function movimentar(id: string, versao: number, pedido: PedidoMudan
     await executarTransacao(pedido.idUsuario, async (tx) => {
         const equipamento = await buscarOuFalhar(id, tx);
         await aplicarMovimentacao(tx, equipamento, versao, pedido);
+        await movimentacaoService.recalcularStatusLote(tx, equipamento.loteId);
+    });
+
+    return buscarOuFalhar(id);
+}
+
+export interface PedidoCorrecao {
+    movimentacaoId: string;
+    justificativa: string;
+    idUsuario: string;
+}
+
+type Historico = Awaited<ReturnType<typeof movimentacaoService.listarHistorico>>;
+
+function escolherMovimentacao(historico: Historico, movimentacaoId: string) {
+    const escolhida = historico.find((movimentacao) => movimentacao.id === movimentacaoId);
+
+    if (!escolhida) {
+        throw new ErroNaoEncontrado("Essa movimentação não pertence a este equipamento");
+    }
+
+    if (escolhida.origem === null) {
+        throw new ErroRegraNegocio("A entrada no lote não pode ser corrigida. Para tirar o equipamento do lote, cancele-o");
+    }
+
+    const correcoes = historico.filter((movimentacao) => movimentacao.movimentacaoCorrigidaId !== null);
+    const ultimaCorrecao = correcoes[correcoes.length - 1];
+
+    if (ultimaCorrecao && escolhida.dataHora <= ultimaCorrecao.dataHora) {
+        throw new ErroRegraNegocio("Essa movimentação já foi desfeita por uma correção anterior");
+    }
+
+    return { escolhida, statusAnterior: escolhida.origem };
+}
+
+async function montarObservacaoDaCorrecao(justificativa: string, parceiroAtual: string | null, parceiroDepois: string | null) {
+    if (!parceiroAtual || parceiroAtual === parceiroDepois) {
+        return `Correção: ${justificativa}`;
+    }
+
+    const parceiro = await destinoRepository.buscarDestinoPorId(parceiroAtual);
+    return `Correção: ${justificativa} (parceiro de destino anterior: ${parceiro?.razaoSocial ?? parceiroAtual})`;
+}
+
+// Desfaz a movimentação escolhida e todas as que vieram depois: o equipamento volta
+// ao status em que estava antes dela. Nada é apagado; a correção vira uma movimentação nova.
+export async function corrigir(id: string, versao: number, pedido: PedidoCorrecao) {
+    await executarTransacao(pedido.idUsuario, async (tx) => {
+        const equipamento = await buscarOuFalhar(id, tx);
+        const lote = await loteRepository.buscarLotePorId(equipamento.loteId, tx);
+
+        if (lote?.statusProcessamento === "CANCELADO") {
+            throw new ErroRegraNegocio("O lote deste equipamento está cancelado; não é possível corrigir");
+        }
+
+        const historico = await movimentacaoService.listarHistorico(id, tx);
+        const { escolhida, statusAnterior } = escolherMovimentacao(historico, pedido.movimentacaoId);
+        const destinoId = STATUS_COM_DESTINO.includes(statusAnterior) ? equipamento.destinoId : null;
+        const observacao = await montarObservacaoDaCorrecao(pedido.justificativa, equipamento.destinoId, destinoId);
+
+        garantirAtualizou(await equipamentoRepository.atualizarStatusEquipamento(tx, id, versao, statusAnterior, destinoId));
+        await movimentacaoService.registrarCorrecao(tx, {
+            equipamentoId: id,
+            origem: equipamento.statusRastreamento,
+            destino: statusAnterior,
+            responsavelId: pedido.idUsuario,
+            observacao,
+            movimentacaoCorrigidaId: escolhida.id,
+        });
         await movimentacaoService.recalcularStatusLote(tx, equipamento.loteId);
     });
 

@@ -62,8 +62,12 @@ export async function recalcularStatusLote(tx: Transacao, loteId: string) {
     }
 }
 
-export async function listarHistorico(equipamentoId: string) {
-    return movimentacaoRepository.listarHistoricoDoEquipamento(equipamentoId);
+export async function listarHistorico(equipamentoId: string, db?: Transacao) {
+    return movimentacaoRepository.listarHistoricoDoEquipamento(equipamentoId, db);
+}
+
+export async function registrarCorrecao(tx: Transacao, dados: movimentacaoRepository.DadosMovimentacao) {
+    await movimentacaoRepository.criarMovimentacao(tx, dados);
 }
 
 export async function listar(pagina: number, filtros: movimentacaoRepository.FiltrosMovimentacao) {

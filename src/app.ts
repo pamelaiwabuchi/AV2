@@ -15,6 +15,7 @@ import { equipamentoController } from "./controllers/equipamentoController.js";
 import { movimentacaoController } from "./controllers/movimentacaoController.js";
 import { auditoriaController } from "./controllers/auditoriaController.js";
 import { relatorioController } from "./controllers/relatorioController.js";
+import { certificadoController } from "./controllers/certificadoController.js";
 
 function tratarErro(erro: FastifyError, request: FastifyRequest, reply: FastifyReply) {
     if (erro instanceof ErroApp) {
@@ -56,6 +57,7 @@ export function criarApp() {
     app.register(movimentacaoController);
     app.register(auditoriaController);
     app.register(relatorioController);
+    app.register(certificadoController);
 
     return app;
 }

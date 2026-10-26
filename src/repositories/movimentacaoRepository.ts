@@ -17,14 +17,15 @@ export interface DadosMovimentacao {
     destino: StatusRastreamento;
     responsavelId: string;
     observacao: string | null;
+    movimentacaoCorrigidaId?: string;
 }
 
 export async function criarMovimentacao(tx: Transacao, dados: DadosMovimentacao) {
     await tx.movimentacao.create({ data: dados });
 }
 
-export async function listarHistoricoDoEquipamento(equipamentoId: string) {
-    return prisma.movimentacao.findMany({
+export async function listarHistoricoDoEquipamento(equipamentoId: string, db: Transacao = prisma) {
+    return db.movimentacao.findMany({
         where: { equipamentoId },
         include: { responsavel: { select: { nome: true, login: true } } },
         orderBy: { dataHora: "asc" },

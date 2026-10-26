@@ -87,6 +87,8 @@ Abra o `.env` e preencha:
 | `JWT_SECRET` | Texto secreto usado para assinar os tokens. Use um texto longo e aleatório | (veja abaixo) |
 | `ADMIN_LOGIN` | Login do primeiro administrador, criado pelo seed | `admin` |
 | `ADMIN_SENHA` | Senha provisória do primeiro administrador | `troque-esta-senha` |
+| `EMPRESA_RAZAO_SOCIAL` | Nome da empresa que emite os certificados de destinação | `GreenCode Logística Reversa Ltda` |
+| `EMPRESA_CNPJ` | CNPJ da empresa emissora (precisa ser válido) | `47.638.125/0001-05` |
 
 Para gerar um `JWT_SECRET` aleatório:
 
@@ -284,6 +286,7 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `PATCH /equipamentos/:id` | Edita tipo, marca, modelo, ano e/ou peso |
 | `PATCH /equipamentos/:id/avaliacao` | Avalia o estado físico |
 | `POST /equipamentos/:id/movimentar` | Muda o status pelo id (gera a movimentação) |
+| `POST /equipamentos/:id/corrigir` | Desfaz uma movimentação errada e as seguintes (`movimentacaoId`, `justificativa`, `versao`) |
 | `POST /equipamentos/codigo/:codigo/movimentar` | Muda o status pelo código de barras, ex.: `GC-2026-000007` |
 | `POST /equipamentos/movimentar-varios` | Muda o status de vários de uma vez, pelos códigos de barras (`"codigos": ["GC-2026-000007", "GC-2026-000008"]`), tudo ou nada |
 | `GET /movimentacoes?pagina=1&inicio=&fim=&destino=&responsavelId=` | Todas as movimentações, com filtros (ex.: tudo o que foi para `DESCARTE_SEGURO` no mês) |
@@ -295,6 +298,8 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `GET /painel` | Números resumidos; cada papel vê a sua parte (o cadastro inclui os contratos que vencem nos próximos 30 dias) |
 | `GET /relatorios/destinacao?organizacaoId=&inicio=&fim=` | Kg por destinação e parceiro, no período; sem `organizacaoId`, soma todas as organizações |
 | `GET /relatorios/financeiro?inicio=&fim=` | Receita bruta, impostos e líquida por organização, no período |
+| `GET /lotes/:id/certificado` | Baixa o certificado de destinação final (PDF) de um lote FINALIZADO |
+| `GET /organizacoes/:id/certificado?inicio=&fim=` | Baixa o certificado (PDF) com os lotes da organização finalizados no período |
 | `GET /auditoria?pagina=1&inicio=&fim=&tabela=&registroId=&usuarioId=` | Registro de todas as alterações, com filtro de período |
 | `GET /parametros` · `PATCH /parametros` | Consulta · altera alíquota, depreciação e dias de lote parado |
 
@@ -392,6 +397,12 @@ Todos os ids são **UUID**.
 - Para ir a `PECAS_REAPROVEITADAS`, `MATERIAL_RECICLAVEL` ou `DESCARTE_SEGURO`, é obrigatório informar o **destino** (parceiro ativo).
 - O último equipamento ativo de um lote não pode ser cancelado: para cancelar todos, cancela-se o lote.
 - **Toda mudança de status gera uma Movimentacao**, na mesma transação. A movimentação nunca é editada nem apagada.
+- **Correção de movimentação errada** (`POST /equipamentos/:id/corrigir`, GESTOR): o gestor escolhe no histórico a movimentação errada, e o sistema desfaz **ela e todas as seguintes**. O equipamento volta ao status em que estava antes dela, mesmo que já esteja em `BAIXA_DEFINITIVA`. Regras:
+  - justificativa obrigatória; a correção é gravada como uma movimentação nova, com `movimentacaoCorrigidaId` apontando para a escolhida. Nada é apagado, então o histórico mostra o erro e a correção;
+  - se o equipamento volta para antes da escolha do parceiro, o parceiro de destino é retirado, e o nome dele fica escrito na observação da correção (a auditoria também guarda o valor anterior);
+  - não corrige a entrada no lote (para isso existe o cancelamento), nem uma movimentação que já foi desfeita por outra correção;
+  - um cancelamento individual pode ser desfeito; o de um equipamento cujo lote foi cancelado, não;
+  - o status do lote é recalculado na mesma transação, e o relatório de destinação ignora as movimentações desfeitas.
 - **Depreciação** (método linear, como na AV1): taxa anual do tipo × idade (ano atual − ano de fabricação), com limite de 100%.
 
 ### Usuários e segurança
@@ -405,6 +416,12 @@ Todos os ids são **UUID**.
 - Usuário, organização e destino são **desativados** (`ativo = false`). Organização desativada não recebe lote; destino desativado não recebe equipamento.
 - Lote e equipamento são **cancelados** (status `CANCELADO`).
 - A única exceção é o contrato futuro, que ainda não começou.
+
+### Certificado de destinação final (PDF)
+- Inspirado no **CDF** usado no Brasil: o documento com que a empresa declara ao cliente que os resíduos dele tiveram destinação adequada.
+- Por **lote** ou por **organização e período** (inclui os lotes que ficaram FINALIZADOS dentro do período). Só lotes **FINALIZADOS**, porque antes disso o destino ainda não aconteceu.
+- Emitido por GESTOR, OPERADOR_CADASTRO e AUDITOR (e ADMINISTRADOR). Gerado na hora com a biblioteca **pdfkit**, sem ficar guardado: reflete sempre o estado atual do lote.
+- Traz o emitente (dados do `.env`), o cliente, os lotes, a tabela de equipamentos (código, tipo, marca e modelo, peso, destinação e parceiro com CNPJ), os totais por destinação, uma declaração e quem emitiu. A destinação de cada equipamento vem da sua última baixa definitiva.
 
 ### Relatório financeiro
 Como na AV1: cada contrato entra com **valor mensal ÷ 30 × dias vigentes dentro do período**. Depois vêm a receita bruta, os impostos (pela alíquota dos parâmetros) e a receita líquida, por organização e no total.

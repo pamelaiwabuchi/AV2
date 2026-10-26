@@ -78,6 +78,19 @@ export async function listarDestinacoes(organizacaoId: string | undefined, inici
     });
 }
 
+export async function listarCorrecoesDosEquipamentos(equipamentoIds: string[]) {
+    const correcoes = await prisma.movimentacao.findMany({
+        where: { equipamentoId: { in: equipamentoIds }, movimentacaoCorrigidaId: { not: null } },
+        include: { movimentacaoCorrigida: { select: { dataHora: true } } },
+    });
+
+    return correcoes.map((correcao) => ({
+        equipamentoId: correcao.equipamentoId,
+        desfezDesde: correcao.movimentacaoCorrigida?.dataHora ?? correcao.dataHora,
+        dataHora: correcao.dataHora,
+    }));
+}
+
 export async function listarContratosNoPeriodo(inicio: Date, fim: Date) {
     return prisma.contrato.findMany({
         where: {

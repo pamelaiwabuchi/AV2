@@ -122,16 +122,20 @@ model Equipamento {
 }
 
 model Movimentacao {
-  id            String              @id @default(uuid()) @db.Uuid
-  equipamentoId String              @db.Uuid
-  dataHora      DateTime            @default(now())
-  origem        StatusRastreamento?
-  destino       StatusRastreamento
-  responsavelId String              @db.Uuid
-  observacao    String?
+  id                      String              @id @default(uuid()) @db.Uuid
+  equipamentoId           String              @db.Uuid
+  dataHora                DateTime            @default(now())
+  origem                  StatusRastreamento?
+  destino                 StatusRastreamento
+  responsavelId           String              @db.Uuid
+  observacao              String?
+  // Preenchido só nas correções: a movimentação escolhida, desfeita junto com as seguintes.
+  movimentacaoCorrigidaId String?             @db.Uuid
 
-  equipamento Equipamento @relation(fields: [equipamentoId], references: [id])
-  responsavel Usuario     @relation(fields: [responsavelId], references: [id])
+  equipamento           Equipamento    @relation(fields: [equipamentoId], references: [id])
+  responsavel           Usuario        @relation(fields: [responsavelId], references: [id])
+  movimentacaoCorrigida Movimentacao?  @relation("Correcao", fields: [movimentacaoCorrigidaId], references: [id])
+  correcoes             Movimentacao[] @relation("Correcao")
 }
 
 model Usuario {

@@ -13,6 +13,7 @@ export const grupos = [
     { name: "Equipamentos", description: "Triagem, avaliação e movimentação de cada equipamento" },
     { name: "Movimentações", description: "Todas as mudanças de status, com filtros" },
     { name: "Painel e relatórios", description: "Resumo por papel e relatórios" },
+    { name: "Certificados", description: "Certificado de destinação final em PDF (lote ou período)" },
     { name: "Auditoria e parâmetros", description: "Histórico de alterações e configurações globais" },
     { name: "Sistema", description: "Situação do servidor" },
 ];
@@ -33,6 +34,10 @@ const grupoPorCaminho: Record<string, string> = {
 };
 
 export function grupoDaRota(url: string) {
+    if (url.endsWith("/certificado")) {
+        return "Certificados";
+    }
+
     if (url.endsWith("/contratos")) {
         return "Contratos";
     }
@@ -87,6 +92,7 @@ export const resumos: Record<string, string> = {
     "PATCH /equipamentos/:id": "Altera tipo, marca, modelo, ano e/ou peso enquanto AGUARDANDO_TRIAGEM (GESTOR)",
     "PATCH /equipamentos/:id/avaliacao": "Avalia o estado físico; queda de 2 níveis ou mais exige justificativa (GESTOR)",
     "POST /equipamentos/:id/movimentar": "Muda o status de um equipamento pelo id (GESTOR)",
+    "POST /equipamentos/:id/corrigir": "Desfaz uma movimentação errada e as seguintes; o equipamento volta ao status de antes dela (GESTOR)",
     "POST /equipamentos/codigo/:codigo/movimentar": "Muda o status de um equipamento pelo código de barras (GESTOR)",
     "POST /equipamentos/movimentar-varios": "Muda o status de vários equipamentos pelos códigos de barras; tudo ou nada (GESTOR)",
 
@@ -94,6 +100,8 @@ export const resumos: Record<string, string> = {
 
     "GET /painel": "Resumo com os números que interessam ao seu papel (todos)",
     "GET /relatorios/destinacao": "Kg por tipo de destinação e parceiro, de uma organização ou de todas (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
+    "GET /lotes/:id/certificado": "Baixa o certificado de destinação em PDF de um lote FINALIZADO (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
+    "GET /organizacoes/:id/certificado": "Baixa o certificado em PDF com os lotes da organização finalizados no período (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /relatorios/financeiro": "Receita, impostos e receita líquida por organização (AUDITOR)",
 
     "GET /auditoria": "Histórico de todas as alterações; filtros de período, tabela, registro e usuário (AUDITOR)",
@@ -176,6 +184,7 @@ export const exemplos: Record<string, object> = {
     "PATCH /equipamentos/:id": { marca: "Dell Technologies", versao: 1 },
     "PATCH /equipamentos/:id/avaliacao": { estadoFisico: "DANIFICADO_GRAVE", justificativa: "Tela trincada", versao: 1 },
     "POST /equipamentos/:id/movimentar": { novoStatus: "EM_TRIAGEM", versao: 1 },
+    "POST /equipamentos/:id/corrigir": { movimentacaoId: ID_DE_EXEMPLO, justificativa: "Era para reciclagem, não descarte", versao: 3 },
     "POST /equipamentos/codigo/:codigo/movimentar": { novoStatus: "EM_TRIAGEM", versao: 1 },
     "POST /equipamentos/movimentar-varios": { codigos: [`GC-${anoAtual}-000007`, `GC-${anoAtual}-000008`], novoStatus: "EM_TRIAGEM" },
 

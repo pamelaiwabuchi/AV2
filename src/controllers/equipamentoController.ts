@@ -38,6 +38,12 @@ interface CorpoMovimentar {
     versao: number;
 }
 
+interface CorpoCorrigir {
+    movimentacaoId: string;
+    justificativa: string;
+    versao: number;
+}
+
 interface CorpoMovimentarVarios {
     codigos: string[];
     novoStatus: StatusRastreamento;
@@ -114,6 +120,19 @@ const esquemaMovimentar = {
     },
 };
 
+const esquemaCorrigir = {
+    params: esquemaId,
+    body: {
+        type: "object",
+        required: ["movimentacaoId", "justificativa", "versao"],
+        properties: {
+            movimentacaoId: { type: "string", format: "uuid" },
+            justificativa: textoObrigatorio,
+            versao: { type: "integer" },
+        },
+    },
+};
+
 const esquemaMovimentarPorCodigo = {
     params: {
         type: "object",
@@ -164,6 +183,7 @@ export async function equipamentoController(app: FastifyInstance) {
     const opcoesAvaliar = { schema: esquemaAvaliar, onRequest: podeAlterar };
     const opcoesMovimentar = { schema: esquemaMovimentar, onRequest: podeAlterar };
     const opcoesMovimentarPorCodigo = { schema: esquemaMovimentarPorCodigo, onRequest: podeAlterar };
+    const opcoesCorrigir = { schema: esquemaCorrigir, onRequest: podeAlterar };
     const opcoesMovimentarVarios = { schema: esquemaMovimentarVarios, onRequest: podeAlterar };
 
     app.get<{ Querystring: ConsultaLista }>("/equipamentos", opcoesListar, async (request) => {
@@ -198,6 +218,13 @@ export async function equipamentoController(app: FastifyInstance) {
         const pedido = { novoStatus, destinoId: destinoId ?? null, observacao: observacao ?? null, idUsuario: request.user.id };
 
         return equipamentoService.movimentar(request.params.id, versao, pedido);
+    });
+
+    app.post<{ Params: ParametrosId; Body: CorpoCorrigir }>("/equipamentos/:id/corrigir", opcoesCorrigir, async (request) => {
+        const { movimentacaoId, justificativa, versao } = request.body;
+        const pedido = { movimentacaoId, justificativa, idUsuario: request.user.id };
+
+        return equipamentoService.corrigir(request.params.id, versao, pedido);
     });
 
     app.post<{ Params: ParametrosCodigo; Body: CorpoMovimentar }>("/equipamentos/codigo/:codigo/movimentar", opcoesMovimentarPorCodigo, async (request) => {
