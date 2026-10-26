@@ -2,8 +2,24 @@ import type { FastifyInstance } from "fastify";
 import * as contratoService from "../services/contratoService.js";
 import { exigirPapel } from "../plugins/autenticacao.js";
 import { esquemaId } from "../utils/esquemas.js";
-import type { DadosContrato } from "../repositories/contratoRepository.js";
+import type { DadosContrato, FiltrosContrato } from "../repositories/contratoRepository.js";
 import { exigirAlgumCampo } from "../utils/alteracoes.js";
+
+interface ConsultaLista extends FiltrosContrato {
+    pagina: number;
+}
+
+const esquemaListar = {
+    querystring: {
+        type: "object",
+        properties: {
+            pagina: { type: "integer", minimum: 1, default: 1 },
+            situacao: { type: "string", enum: ["FUTURO", "VIGENTE", "ENCERRADO"] },
+            vencendoEmDias: { type: "integer", minimum: 0 },
+            organizacaoId: { type: "string", format: "uuid" },
+        },
+    },
+};
 
 interface ParametrosId {
     id: string;
@@ -119,6 +135,11 @@ export async function contratoController(app: FastifyInstance) {
     const opcoesRenovar = { schema: esquemaRenovar, onRequest: podeAlterar };
     const opcoesEncerrar = { schema: esquemaVersao, onRequest: podeAlterar };
     const opcoesApagar = { schema: { params: esquemaId }, onRequest: podeAlterar };
+
+    app.get<{ Querystring: ConsultaLista }>("/contratos", { schema: esquemaListar, onRequest: podeConsultar }, async (request) => {
+        const { pagina, ...filtros } = request.query;
+        return contratoService.listar(pagina, filtros);
+    });
 
     app.get<{ Params: ParametrosId }>("/organizacoes/:id/contratos", opcoesBuscar, async (request) => {
         return contratoService.listarDaOrganizacao(request.params.id);

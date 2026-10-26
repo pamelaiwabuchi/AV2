@@ -2,17 +2,31 @@ import type { FastifyInstance } from "fastify";
 import { PapelUsuario } from "../generated/prisma/enums.js";
 import * as usuarioService from "../services/usuarioService.js";
 import { exigirPapel } from "../plugins/autenticacao.js";
-import { esquemaId, esquemaPagina, textoObrigatorio } from "../utils/esquemas.js";
+import { esquemaId, textoObrigatorio } from "../utils/esquemas.js";
 import type { PedidoAlteracaoUsuario } from "../services/usuarioService.js";
+import type { FiltrosUsuario } from "../repositories/usuarioRepository.js";
 import { exigirAlgumCampo } from "../utils/alteracoes.js";
 
 interface ParametrosId {
     id: string;
 }
 
-interface ConsultaLista {
+interface ConsultaLista extends FiltrosUsuario {
     pagina: number;
 }
+
+const esquemaListar = {
+    querystring: {
+        type: "object",
+        properties: {
+            pagina: { type: "integer", minimum: 1, default: 1 },
+            busca: { type: "string" },
+            papel: { type: "string", enum: Object.values(PapelUsuario) },
+            ativo: { type: "boolean" },
+            bloqueado: { type: "boolean" },
+        },
+    },
+};
 
 interface CorpoCriar {
     nome: string;
@@ -71,14 +85,15 @@ const esquemaSenha = {
 };
 
 export async function usuarioController(app: FastifyInstance) {
-    const opcoesListar = { schema: { querystring: esquemaPagina }, onRequest: somenteAdmin };
+    const opcoesListar = { schema: esquemaListar, onRequest: somenteAdmin };
     const opcoesBuscar = { schema: { params: esquemaId }, onRequest: somenteAdmin };
     const opcoesCriar = { schema: esquemaCriar, onRequest: somenteAdmin };
     const opcoesAtualizar = { schema: esquemaAtualizar, onRequest: somenteAdmin };
     const opcoesSenha = { schema: esquemaSenha, onRequest: somenteAdmin };
 
     app.get<{ Querystring: ConsultaLista }>("/usuarios", opcoesListar, async (request) => {
-        return usuarioService.listar(request.query.pagina);
+        const { pagina, ...filtros } = request.query;
+        return usuarioService.listar(pagina, filtros);
     });
 
     app.get<{ Params: ParametrosId }>("/usuarios/:id", opcoesBuscar, async (request) => {

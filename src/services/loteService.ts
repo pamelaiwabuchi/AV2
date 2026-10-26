@@ -57,27 +57,21 @@ function validarDataEntrada(dataEntrada: Date) {
     }
 }
 
-async function validarEquipamentosNovos(equipamentos: DadosEquipamentoNovo[]) {
-    const codigos = equipamentos.map((equipamento) => equipamento.codigoBarrasInterno);
-    const repetidosNaLista = codigos.filter((codigo, posicao) => codigos.indexOf(codigo) !== posicao);
-
-    if (repetidosNaLista.length > 0) {
-        throw new ErroRegraNegocio(`Código de barras repetido na lista: ${repetidosNaLista.join(", ")}`);
-    }
-
-    const jaCadastrados = await equipamentoRepository.listarCodigosJaCadastrados(codigos);
-
-    if (jaCadastrados.length > 0) {
-        throw new ErroConflito(`Código de barras já cadastrado: ${jaCadastrados.join(", ")}`);
-    }
-
+function validarEquipamentosNovos(equipamentos: DadosEquipamentoNovo[]) {
     for (const equipamento of equipamentos) {
         validarAnoFabricacao(equipamento.anoFabricacao);
     }
 }
 
+// Formato GC-AAAA-000001: prefixo da empresa, ano do cadastro e número sequencial.
+function montarCodigoDeBarras(numero: number) {
+    const ano = new Date().getFullYear();
+    return `GC-${ano}-${String(numero).padStart(6, "0")}`;
+}
+
 async function adicionarNoLote(tx: Transacao, loteId: string, posicao: number, dados: DadosEquipamentoNovo, idUsuario: string) {
-    const equipamento = await equipamentoRepository.criarEquipamento(tx, loteId, posicao, dados);
+    const codigo = montarCodigoDeBarras(await equipamentoRepository.proximoNumeroDeCodigo(tx));
+    const equipamento = await equipamentoRepository.criarEquipamento(tx, loteId, posicao, codigo, dados);
     await movimentacaoService.registrarEntrada(tx, equipamento.id, idUsuario);
 }
 
@@ -108,7 +102,7 @@ export async function buscar(id: string) {
 export async function criar(dados: DadosLote, equipamentos: DadosEquipamentoNovo[], idUsuario: string) {
     await validarOrganizacao(dados.organizacaoId);
     validarDataEntrada(dados.dataEntrada);
-    await validarEquipamentosNovos(equipamentos);
+    validarEquipamentosNovos(equipamentos);
 
     const lote = await executarTransacao(idUsuario, async (tx) => {
         const novoLote = await loteRepository.criarLote(tx, dados);
@@ -171,7 +165,7 @@ export async function adicionarEquipamento(loteId: string, dados: DadosEquipamen
         throw new ErroRegraNegocio(`Não é possível adicionar equipamento a um lote ${lote.statusProcessamento}`);
     }
 
-    await validarEquipamentosNovos([dados]);
+    validarEquipamentosNovos([dados]);
 
     await executarTransacao(idUsuario, async (tx) => {
         const posicao = (await equipamentoRepository.buscarMaiorPosicaoDoLote(tx, loteId)) + 1;

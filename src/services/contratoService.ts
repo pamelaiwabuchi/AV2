@@ -4,7 +4,7 @@ import { hojeSemHora } from "../utils/datas.js";
 import * as contratoRepository from "../repositories/contratoRepository.js";
 import { executarTransacao } from "../lib/transacao.js";
 import * as organizacaoRepository from "../repositories/organizacaoRepository.js";
-import type { DadosContrato } from "../repositories/contratoRepository.js";
+import type { DadosContrato, FiltrosContrato } from "../repositories/contratoRepository.js";
 
 type Situacao = "FUTURO" | "VIGENTE" | "ENCERRADO";
 
@@ -22,7 +22,7 @@ function calcularSituacao(contrato: Contrato): Situacao {
     return "VIGENTE";
 }
 
-function comSituacao(contrato: Contrato) {
+function comSituacao<T extends Contrato>(contrato: T) {
     const situacao = calcularSituacao(contrato);
     return { ...contrato, situacao, vigente: situacao === "VIGENTE" };
 }
@@ -65,6 +65,11 @@ function garantirAtualizou(atualizou: boolean) {
     if (!atualizou) {
         throw new ErroConflito("O contrato foi alterado por outra pessoa. Recarregue e tente de novo");
     }
+}
+
+export async function listar(pagina: number, filtros: FiltrosContrato) {
+    const resultado = await contratoRepository.listarContratos(pagina, filtros);
+    return { ...resultado, itens: resultado.itens.map(comSituacao) };
 }
 
 export async function listarDaOrganizacao(organizacaoId: string) {

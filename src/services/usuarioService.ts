@@ -33,8 +33,8 @@ async function buscarOuFalhar(id: string) {
     return usuario;
 }
 
-export async function listar(pagina: number) {
-    return usuarioRepository.listarUsuarios(pagina);
+export async function listar(pagina: number, filtros: usuarioRepository.FiltrosUsuario) {
+    return usuarioRepository.listarUsuarios(pagina, filtros);
 }
 
 export async function buscar(id: string) {

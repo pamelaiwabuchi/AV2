@@ -3,7 +3,7 @@ import * as relatorioService from "../services/relatorioService.js";
 import { exigirLogin, exigirPapel } from "../plugins/autenticacao.js";
 
 interface ConsultaDestinacao {
-    organizacaoId: string;
+    organizacaoId?: string;
     inicio: string;
     fim: string;
 }
@@ -11,7 +11,7 @@ interface ConsultaDestinacao {
 const esquemaDestinacao = {
     querystring: {
         type: "object",
-        required: ["organizacaoId", "inicio", "fim"],
+        required: ["inicio", "fim"],
         properties: {
             organizacaoId: { type: "string", format: "uuid" },
             inicio: { type: "string", format: "date" },

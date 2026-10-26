@@ -2,8 +2,16 @@ import { prisma } from "../lib/prisma.js";
 import type { PapelUsuario } from "../generated/prisma/enums.js";
 import type { Transacao } from "../lib/transacao.js";
 import { montarPagina } from "../utils/paginacao.js";
+import type { Prisma } from "../generated/prisma/client.js";
 
 const TAMANHO_PAGINA = 20;
+
+export interface FiltrosUsuario {
+    busca?: string;
+    papel?: PapelUsuario;
+    ativo?: boolean;
+    bloqueado?: boolean;
+}
 
 export interface AlteracoesUsuario {
     nome?: string;
@@ -48,15 +56,50 @@ export async function atualizarSenha(tx: Transacao, id: string, versao: number, 
     return resultado.count === 1;
 }
 
-export async function listarUsuarios(pagina: number) {
+function montarFiltroUsuarios(filtros: FiltrosUsuario) {
+    const agora = new Date();
+    const condicoes: Prisma.UsuarioWhereInput[] = [];
+
+    if (filtros.busca) {
+        condicoes.push({
+            OR: [
+                { nome: { contains: filtros.busca, mode: "insensitive" } },
+                { login: { contains: filtros.busca, mode: "insensitive" } },
+            ],
+        });
+    }
+
+    if (filtros.papel) {
+        condicoes.push({ papel: filtros.papel });
+    }
+
+    if (filtros.ativo !== undefined) {
+        condicoes.push({ ativo: filtros.ativo });
+    }
+
+    if (filtros.bloqueado === true) {
+        condicoes.push({ bloqueadoAte: { gt: agora } });
+    }
+
+    if (filtros.bloqueado === false) {
+        condicoes.push({ OR: [{ bloqueadoAte: null }, { bloqueadoAte: { lte: agora } }] });
+    }
+
+    return { AND: condicoes };
+}
+
+export async function listarUsuarios(pagina: number, filtros: FiltrosUsuario) {
+    const where = montarFiltroUsuarios(filtros);
+
     const [itens, total] = await Promise.all([
         prisma.usuario.findMany({
+            where,
             omit: { hashSenha: true },
             orderBy: { nome: "asc" },
             skip: (pagina - 1) * TAMANHO_PAGINA,
             take: TAMANHO_PAGINA,
         }),
-        prisma.usuario.count(),
+        prisma.usuario.count({ where }),
     ]);
 
     return montarPagina(itens, total, pagina, TAMANHO_PAGINA);

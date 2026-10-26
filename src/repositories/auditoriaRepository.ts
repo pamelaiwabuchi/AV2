@@ -7,6 +7,7 @@ export interface FiltrosAuditoria {
     tabela?: string;
     registroId?: string;
     usuarioId?: string;
+    dataHora?: { gte?: Date; lt?: Date };
 }
 
 export async function listarAuditoria(pagina: number, filtros: FiltrosAuditoria) {

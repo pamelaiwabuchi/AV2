@@ -47,6 +47,7 @@ export async function registrarMudancaDeStatus(tx: Transacao, equipamento: Equip
 }
 
 export async function recalcularStatusLote(tx: Transacao, loteId: string) {
+    await loteRepository.travarLote(tx, loteId);
     const lote = await loteRepository.buscarLotePorId(loteId, tx);
 
     if (!lote || lote.statusProcessamento === "CANCELADO") {
@@ -63,4 +64,8 @@ export async function recalcularStatusLote(tx: Transacao, loteId: string) {
 
 export async function listarHistorico(equipamentoId: string) {
     return movimentacaoRepository.listarHistoricoDoEquipamento(equipamentoId);
+}
+
+export async function listar(pagina: number, filtros: movimentacaoRepository.FiltrosMovimentacao) {
+    return movimentacaoRepository.listarMovimentacoes(pagina, filtros);
 }

@@ -12,6 +12,7 @@ import { contratoController } from "./controllers/contratoController.js";
 import { destinoController } from "./controllers/destinoController.js";
 import { loteController } from "./controllers/loteController.js";
 import { equipamentoController } from "./controllers/equipamentoController.js";
+import { movimentacaoController } from "./controllers/movimentacaoController.js";
 import { auditoriaController } from "./controllers/auditoriaController.js";
 import { relatorioController } from "./controllers/relatorioController.js";
 
@@ -52,6 +53,7 @@ export function criarApp() {
     app.register(destinoController);
     app.register(loteController);
     app.register(equipamentoController);
+    app.register(movimentacaoController);
     app.register(auditoriaController);
     app.register(relatorioController);
 

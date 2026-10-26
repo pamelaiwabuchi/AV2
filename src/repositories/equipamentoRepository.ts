@@ -14,7 +14,6 @@ export interface DadosEquipamento {
 }
 
 export interface DadosEquipamentoNovo extends DadosEquipamento {
-    codigoBarrasInterno: string;
     estadoFisico: EstadoFisico;
 }
 
@@ -46,13 +45,9 @@ export async function buscarEquipamentoPorCodigo(codigoBarrasInterno: string) {
     return prisma.equipamento.findUnique({ where: { codigoBarrasInterno } });
 }
 
-export async function listarCodigosJaCadastrados(codigos: string[]) {
-    const equipamentos = await prisma.equipamento.findMany({
-        where: { codigoBarrasInterno: { in: codigos } },
-        select: { codigoBarrasInterno: true },
-    });
-
-    return equipamentos.map((equipamento) => equipamento.codigoBarrasInterno);
+export async function proximoNumeroDeCodigo(tx: Transacao) {
+    const [linha] = await tx.$queryRaw<{ numero: bigint }[]>`SELECT nextval('codigo_equipamento_seq') AS numero`;
+    return Number(linha!.numero);
 }
 
 export async function buscarMaiorPosicaoDoLote(tx: Transacao, loteId: string) {
@@ -64,8 +59,8 @@ export async function buscarMaiorPosicaoDoLote(tx: Transacao, loteId: string) {
     return resultado._max.posicaoNoLote ?? 0;
 }
 
-export async function criarEquipamento(tx: Transacao, loteId: string, posicaoNoLote: number, dados: DadosEquipamentoNovo) {
-    return tx.equipamento.create({ data: { ...dados, loteId, posicaoNoLote } });
+export async function criarEquipamento(tx: Transacao, loteId: string, posicaoNoLote: number, codigoBarrasInterno: string, dados: DadosEquipamentoNovo) {
+    return tx.equipamento.create({ data: { ...dados, codigoBarrasInterno, loteId, posicaoNoLote } });
 }
 
 export async function listarEquipamentosDoLote(tx: Transacao, loteId: string) {

@@ -11,6 +11,7 @@ export const grupos = [
     { name: "Destinos", description: "Parceiros que recebem os equipamentos (reciclagem, peças, descarte)" },
     { name: "Lotes", description: "Chegada de equipamentos de uma organização" },
     { name: "Equipamentos", description: "Triagem, avaliação e movimentação de cada equipamento" },
+    { name: "Movimentações", description: "Todas as mudanças de status, com filtros" },
     { name: "Painel e relatórios", description: "Resumo por papel e relatórios" },
     { name: "Auditoria e parâmetros", description: "Histórico de alterações e configurações globais" },
     { name: "Sistema", description: "Situação do servidor" },
@@ -24,6 +25,7 @@ const grupoPorCaminho: Record<string, string> = {
     destinos: "Destinos",
     lotes: "Lotes",
     equipamentos: "Equipamentos",
+    movimentacoes: "Movimentações",
     painel: "Painel e relatórios",
     relatorios: "Painel e relatórios",
     auditoria: "Auditoria e parâmetros",
@@ -44,7 +46,7 @@ export const resumos: Record<string, string> = {
     "PATCH /auth/senha": "Troca a própria senha; obrigatório no primeiro acesso (todos)",
     "GET /auth/perfil": "Mostra os dados do usuário logado (todos)",
 
-    "GET /usuarios": "Lista os usuários (ADMINISTRADOR)",
+    "GET /usuarios": "Lista os usuários; busca por nome ou login e filtros de papel, ativo e bloqueado (ADMINISTRADOR)",
     "GET /usuarios/:id": "Mostra um usuário (ADMINISTRADOR)",
     "POST /usuarios": "Cria um usuário com senha provisória (ADMINISTRADOR)",
     "PATCH /usuarios/:id": "Altera nome, papel e/ou ativo; ativo false desativa (ADMINISTRADOR)",
@@ -56,6 +58,7 @@ export const resumos: Record<string, string> = {
     "POST /organizacoes": "Cadastra uma organização (OPERADOR_CADASTRO)",
     "PATCH /organizacoes/:id": "Altera dados da organização; ativo false desativa (OPERADOR_CADASTRO)",
 
+    "GET /contratos": "Lista os contratos; filtros de situação, organização e vencendoEmDias, ex.: 30 (OPERADOR_CADASTRO, AUDITOR)",
     "GET /organizacoes/:id/contratos": "Lista os contratos de uma organização (OPERADOR_CADASTRO, AUDITOR)",
     "GET /contratos/:id": "Mostra um contrato com a situação FUTURO, VIGENTE ou ENCERRADO (OPERADOR_CADASTRO, AUDITOR)",
     "POST /contratos": "Cria um contrato (OPERADOR_CADASTRO)",
@@ -72,13 +75,13 @@ export const resumos: Record<string, string> = {
     "GET /lotes": "Lista os lotes, com filtro por status e organização (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /lotes/parados": "Lotes sem andar há mais dias que o configurado (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /lotes/:id": "Mostra um lote com seus equipamentos e peso total (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
-    "POST /lotes": "Registra a chegada de um lote com seus equipamentos (GESTOR)",
+    "POST /lotes": "Registra a chegada de um lote com seus equipamentos; o código de barras é gerado pelo sistema (GESTOR)",
     "PATCH /lotes/:id": "Altera nota fiscal, transportadora e/ou observações de um lote RECEBIDO (GESTOR)",
     "PATCH /lotes/:id/cancelar": "Cancela um lote RECEBIDO e todos os seus equipamentos (GESTOR)",
-    "POST /lotes/:id/equipamentos": "Adiciona um equipamento a um lote (GESTOR)",
+    "POST /lotes/:id/equipamentos": "Adiciona um equipamento a um lote; o código de barras é gerado pelo sistema (GESTOR)",
 
     "GET /equipamentos": "Lista os equipamentos, com filtros (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
-    "GET /equipamentos/codigo/:codigo": "Busca pelo código de barras, ex.: GC-0001 (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
+    "GET /equipamentos/codigo/:codigo": "Busca pelo código de barras, ex.: GC-2026-000001 (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /equipamentos/:id": "Mostra um equipamento com a depreciação (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /equipamentos/:id/historico": "Histórico de movimentações do equipamento (GESTOR, AUDITOR)",
     "PATCH /equipamentos/:id": "Altera tipo, marca, modelo, ano e/ou peso enquanto AGUARDANDO_TRIAGEM (GESTOR)",
@@ -87,11 +90,13 @@ export const resumos: Record<string, string> = {
     "POST /equipamentos/codigo/:codigo/movimentar": "Muda o status de um equipamento pelo código de barras (GESTOR)",
     "POST /equipamentos/movimentar-varios": "Muda o status de vários equipamentos pelos códigos de barras; tudo ou nada (GESTOR)",
 
+    "GET /movimentacoes": "Lista as movimentações; filtros de período, status de destino e responsável (GESTOR, AUDITOR)",
+
     "GET /painel": "Resumo com os números que interessam ao seu papel (todos)",
-    "GET /relatorios/destinacao": "Kg por tipo de destinação e parceiro de uma organização (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
+    "GET /relatorios/destinacao": "Kg por tipo de destinação e parceiro, de uma organização ou de todas (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /relatorios/financeiro": "Receita, impostos e receita líquida por organização (AUDITOR)",
 
-    "GET /auditoria": "Histórico de todas as alterações, com filtros (AUDITOR)",
+    "GET /auditoria": "Histórico de todas as alterações; filtros de período, tabela, registro e usuário (AUDITOR)",
     "GET /parametros": "Mostra alíquota, depreciação e dias de lote parado (AUDITOR)",
     "PATCH /parametros": "Altera os parâmetros globais (ADMINISTRADOR)",
 
@@ -99,6 +104,7 @@ export const resumos: Record<string, string> = {
 };
 
 const hoje = new Date().toISOString().slice(0, 10);
+const anoAtual = new Date().getFullYear();
 
 export const exemplos: Record<string, object> = {
     "POST /auth/login": { login: "admin", senha: "troque-esta-senha" },
@@ -147,7 +153,6 @@ export const exemplos: Record<string, object> = {
         observacoes: "Duas caixas",
         equipamentos: [
             {
-                codigoBarrasInterno: "GC-0101",
                 tipo: "NOTEBOOK",
                 marca: "Dell",
                 modelo: "Latitude 5400",
@@ -160,7 +165,6 @@ export const exemplos: Record<string, object> = {
     "PATCH /lotes/:id": { observacoes: "Uma caixa chegou molhada", versao: 1 },
     "PATCH /lotes/:id/cancelar": { versao: 1 },
     "POST /lotes/:id/equipamentos": {
-        codigoBarrasInterno: "GC-0102",
         tipo: "MONITOR",
         marca: "LG",
         modelo: "24MK430",
@@ -173,7 +177,7 @@ export const exemplos: Record<string, object> = {
     "PATCH /equipamentos/:id/avaliacao": { estadoFisico: "DANIFICADO_GRAVE", justificativa: "Tela trincada", versao: 1 },
     "POST /equipamentos/:id/movimentar": { novoStatus: "EM_TRIAGEM", versao: 1 },
     "POST /equipamentos/codigo/:codigo/movimentar": { novoStatus: "EM_TRIAGEM", versao: 1 },
-    "POST /equipamentos/movimentar-varios": { codigos: ["GC-0007", "GC-0008"], novoStatus: "EM_TRIAGEM" },
+    "POST /equipamentos/movimentar-varios": { codigos: [`GC-${anoAtual}-000007`, `GC-${anoAtual}-000008`], novoStatus: "EM_TRIAGEM" },
 
     "PATCH /parametros": { diasLoteParado: 45, versao: 1 },
 };

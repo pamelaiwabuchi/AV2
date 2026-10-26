@@ -34,6 +34,7 @@ async function painelDoCadastro() {
     return {
         organizacoesAtivas: await relatorioRepository.contarOrganizacoesAtivas(),
         contratosVigentes: await relatorioRepository.contarContratosVigentes(),
+        contratosVencendoEm30Dias: await relatorioRepository.contarContratosVencendoEm(30),
     };
 }
 
@@ -52,9 +53,9 @@ export async function montarPainel(papel: PapelUsuario) {
     };
 }
 
-export async function relatorioDestinacao(organizacaoId: string, inicio: Date, fim: Date) {
-    if (fim < inicio) {
-        throw new ErroRegraNegocio("A data final precisa ser igual ou depois da data inicial");
+async function buscarOrganizacaoDoRelatorio(organizacaoId: string | undefined) {
+    if (!organizacaoId) {
+        return null;
     }
 
     const organizacao = await organizacaoRepository.buscarOrganizacaoPorId(organizacaoId);
@@ -62,6 +63,16 @@ export async function relatorioDestinacao(organizacaoId: string, inicio: Date, f
     if (!organizacao) {
         throw new ErroNaoEncontrado("Organização não encontrada");
     }
+
+    return { razaoSocial: organizacao.razaoSocial, cnpj: organizacao.cnpj };
+}
+
+export async function relatorioDestinacao(organizacaoId: string | undefined, inicio: Date, fim: Date) {
+    if (fim < inicio) {
+        throw new ErroRegraNegocio("A data final precisa ser igual ou depois da data inicial");
+    }
+
+    const organizacao = await buscarOrganizacaoDoRelatorio(organizacaoId);
 
     const fimInclusivo = new Date(fim.getTime() + UM_DIA);
     const destinacoes = await relatorioRepository.listarDestinacoes(organizacaoId, inicio, fimInclusivo);
@@ -79,7 +90,7 @@ export async function relatorioDestinacao(organizacaoId: string, inicio: Date, f
     }
 
     return {
-        organizacao: { razaoSocial: organizacao.razaoSocial, cnpj: organizacao.cnpj },
+        organizacao: organizacao ?? "Todas as organizações",
         periodo: { inicio, fim },
         totalEquipamentos: destinacoes.length,
         kgTotal: arredondar(kgTotal),
@@ -87,6 +98,7 @@ export async function relatorioDestinacao(organizacaoId: string, inicio: Date, f
         equipamentos: destinacoes.map((item) => ({
             codigoBarrasInterno: item.equipamento.codigoBarrasInterno,
             tipo: item.equipamento.tipo,
+            organizacao: item.equipamento.lote.organizacao.razaoSocial,
             pesoQuilogramas: Number(item.equipamento.pesoQuilogramas),
             destinacao: item.destino,
             parceiro: item.equipamento.destino,

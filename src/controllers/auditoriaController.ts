@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { exigirPapel } from "../plugins/autenticacao.js";
 import { ErroConflito } from "../errors/erros.js";
 import { executarTransacao } from "../lib/transacao.js";
+import { filtroDePeriodo } from "../utils/datas.js";
 import * as auditoriaRepository from "../repositories/auditoriaRepository.js";
 import * as parametrosRepository from "../repositories/parametrosRepository.js";
 import type { FiltrosAuditoria } from "../repositories/auditoriaRepository.js";
@@ -10,6 +11,8 @@ import { exigirAlgumCampo } from "../utils/alteracoes.js";
 
 interface ConsultaAuditoria extends FiltrosAuditoria {
     pagina: number;
+    inicio?: string;
+    fim?: string;
 }
 
 interface CorpoParametros extends Partial<DadosParametros> {
@@ -26,6 +29,8 @@ const esquemaAuditoria = {
             tabela: { type: "string" },
             registroId: { type: "string", format: "uuid" },
             usuarioId: { type: "string", format: "uuid" },
+            inicio: { type: "string", format: "date" },
+            fim: { type: "string", format: "date" },
         },
     },
 };
@@ -59,8 +64,8 @@ export async function auditoriaController(app: FastifyInstance) {
     const opcoesParametros = { schema: esquemaParametros, onRequest: somenteAdmin };
 
     app.get<{ Querystring: ConsultaAuditoria }>("/auditoria", opcoesAuditoria, async (request) => {
-        const { pagina, ...filtros } = request.query;
-        return auditoriaRepository.listarAuditoria(pagina, filtros);
+        const { pagina, inicio, fim, ...filtros } = request.query;
+        return auditoriaRepository.listarAuditoria(pagina, { ...filtros, dataHora: filtroDePeriodo(inicio, fim) });
     });
 
     app.get("/parametros", { onRequest: podeConsultar }, async () => {

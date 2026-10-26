@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { STATUS_COM_DESTINO } from "../utils/regrasStatus.js";
-import { hojeSemHora } from "../utils/datas.js";
+import { hojeSemHora, somarDias } from "../utils/datas.js";
 
 export async function contarLotesPorStatus() {
     return prisma.lote.groupBy({
@@ -43,12 +43,25 @@ export async function contarContratosVigentes() {
     });
 }
 
-export async function listarDestinacoes(organizacaoId: string, inicio: Date, fim: Date) {
+export async function contarContratosVencendoEm(dias: number) {
+    const hoje = hojeSemHora();
+
+    return prisma.contrato.count({
+        where: {
+            dataAssinatura: { lte: hoje },
+            dataVencimento: { gte: hoje, lte: somarDias(hoje, dias) },
+        },
+    });
+}
+
+export async function listarDestinacoes(organizacaoId: string | undefined, inicio: Date, fim: Date) {
+    const filtroOrganizacao = organizacaoId ? { lote: { organizacaoId } } : {};
+
     return prisma.movimentacao.findMany({
         where: {
             destino: { in: STATUS_COM_DESTINO },
             dataHora: { gte: inicio, lt: fim },
-            equipamento: { lote: { organizacaoId } },
+            equipamento: filtroOrganizacao,
         },
         include: {
             equipamento: {
@@ -57,6 +70,7 @@ export async function listarDestinacoes(organizacaoId: string, inicio: Date, fim
                     tipo: true,
                     pesoQuilogramas: true,
                     destino: { select: { razaoSocial: true, cnpj: true } },
+                    lote: { select: { organizacao: { select: { razaoSocial: true } } } },
                 },
             },
         },

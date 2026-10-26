@@ -70,6 +70,12 @@ export async function atualizarDadosLote(tx: Transacao, id: string, versao: numb
     return resultado.count === 1;
 }
 
+// Trava a linha do lote até o fim da transação: outra transação que tentar travar
+// o mesmo lote espera esta terminar (commit ou rollback).
+export async function travarLote(tx: Transacao, id: string) {
+    await tx.$executeRaw`SELECT id FROM "Lote" WHERE id = ${id}::uuid FOR UPDATE`;
+}
+
 export async function atualizarStatusLote(tx: Transacao, id: string, status: StatusLote) {
     await tx.lote.update({
         where: { id },

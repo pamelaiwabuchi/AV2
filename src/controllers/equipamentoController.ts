@@ -55,12 +55,11 @@ export const camposEquipamento = {
 
 export const camposEquipamentoNovo = {
     ...camposEquipamento,
-    codigoBarrasInterno: textoObrigatorio,
     estadoFisico: { type: "string", enum: Object.values(EstadoFisico) },
 };
 
 export const obrigatoriosEquipamentoNovo = [
-    "codigoBarrasInterno", "tipo", "marca", "modelo", "anoFabricacao", "estadoFisico", "pesoQuilogramas",
+    "tipo", "marca", "modelo", "anoFabricacao", "estadoFisico", "pesoQuilogramas",
 ];
 
 const statusRastreamento = { type: "string", enum: Object.values(StatusRastreamento) };

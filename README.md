@@ -4,7 +4,7 @@
 
 API RESTful para **logística reversa de equipamentos eletrônicos**, desenvolvida em Node.js e TypeScript com Fastify, Prisma ORM e PostgreSQL.
 
-O greencode acompanha o caminho de equipamentos descartados por organizações clientes: do contrato com a organização, passando pela chegada dos lotes e pela triagem de cada equipamento, até o destino final (reaproveitamento de peças, reciclagem, descarte seguro) e a baixa definitiva. Cada equipamento tem um código de barras interno e pode ser rastreado do começo ao fim.
+O greencode acompanha o caminho de equipamentos descartados por organizações clientes: do contrato com a organização, passando pela chegada dos lotes e pela triagem de cada equipamento, até o destino final (reaproveitamento de peças, reciclagem, descarte seguro) e a baixa definitiva. Cada equipamento recebe do sistema um código de barras interno (ex.: `GC-2026-000123`) e pode ser rastreado do começo ao fim.
 
 Esta é a evolução da [AV1](https://github.com/pamelaiwabuchi/AV1), que era uma aplicação de linha de comando com arquivos criptografados. Agora o sistema é um servidor monolítico com banco de dados relacional.
 
@@ -164,7 +164,7 @@ Todo erro responde no mesmo formato: `{ "erro": "mensagem" }`, com o código HTT
 | 401 | Sem login, token inválido/expirado, senha errada ou conta bloqueada |
 | 403 | Logado, mas sem permissão (ou com troca de senha pendente) |
 | 404 | Registro não encontrado |
-| 409 | Conflito: valor único repetido (CNPJ, login, código de barras) ou registro alterado por outra pessoa (versão desatualizada) |
+| 409 | Conflito: valor único repetido (CNPJ, login) ou registro alterado por outra pessoa (versão desatualizada) |
 | 422 | Regra de negócio violada (ex.: cancelar um lote que já entrou em triagem) |
 
 **Editar e a `versao`.** Todo registro editável tem o campo `versao`. Para editar, consulte o registro antes (a resposta traz a `versao`) e mande esse número junto no PATCH. A resposta do PATCH já traz a versão nova. Se outra pessoa tiver alterado o registro nesse meio-tempo, a resposta é **409**: consulte de novo e repita.
@@ -181,11 +181,11 @@ Usa os dados do seed. Faça primeiro os passos 1 a 5 acima, com o `admin`.
 
 1. **Painel:** `GET /painel` mostra os números gerais.
 2. **Lotes:** `GET /lotes` lista os 4 lotes do seed. O lote `NF-1002` está RECEBIDO e parado (aparece também em `GET /lotes/parados`).
-3. **Consultar um equipamento:** `GET /equipamentos/codigo/GC-0007`. Anote a `versao` da resposta.
-4. **Movimentar pelo código de barras:** `POST /equipamentos/codigo/GC-0007/movimentar` com `{ "novoStatus": "EM_TRIAGEM", "versao": <a do passo 3> }`. Resposta **200**; o lote `NF-1002` passa sozinho para EM_TRIAGEM.
+3. **Consultar um equipamento:** `GET /equipamentos/codigo/GC-2026-000007`. Anote a `versao` da resposta.
+4. **Movimentar pelo código de barras:** `POST /equipamentos/codigo/GC-2026-000007/movimentar` com `{ "novoStatus": "EM_TRIAGEM", "versao": <a do passo 3> }`. Resposta **200**; o lote `NF-1002` passa sozinho para EM_TRIAGEM.
 5. **Conflito de versão:** repita o passo 4 com a **mesma** versão. Resposta **409**, porque o equipamento já mudou.
-6. **Regra de transição:** `POST /equipamentos/codigo/GC-0007/movimentar` com `{ "novoStatus": "BAIXA_DEFINITIVA", "versao": <a nova> }`. Resposta **422**: não dá para pular a triagem.
-7. **Histórico:** copie o `id` do GC-0007 e abra `GET /equipamentos/{id}/historico`. Aparecem a entrada no lote e a movimentação do passo 4, com o responsável.
+6. **Regra de transição:** `POST /equipamentos/codigo/GC-2026-000007/movimentar` com `{ "novoStatus": "BAIXA_DEFINITIVA", "versao": <a nova> }`. Resposta **422**: não dá para pular a triagem.
+7. **Histórico:** copie o `id` do GC-2026-000007 e abra `GET /equipamentos/{id}/historico`. Aparecem a entrada no lote e a movimentação do passo 4, com o responsável.
 8. **Auditoria:** `GET /auditoria?tabela=Equipamento` mostra quem alterou o quê e quando.
 9. **Validação:** `POST /organizacoes` com `{ "razaoSocial": "Teste" }`. Resposta **400** dizendo qual campo falta.
 10. **Permissão:** faça login como `carla.auditora` (senha `Greencode1`), troque a senha e use o token novo no Authorize. `POST /organizacoes` responde **403**: o auditor só consulta.
@@ -203,7 +203,7 @@ Usa os dados do seed. Faça primeiro os passos 1 a 5 acima, com o `admin`.
 | `bruno.gestor` | GESTOR_ALMOXARIFADO | `Greencode1` |
 | `carla.auditora` | AUDITOR | `Greencode1` |
 
-O seed também cria 3 organizações (uma delas, o Hospital Bem Estar, sem contrato: não pode receber lote), 3 contratos, 2 destinos parceiros e 4 lotes, um em cada situação: **finalizado**, **em triagem**, **recebido e parado há 35 dias** e **cancelado**. Os equipamentos vão de `GC-0001` a `GC-0009`.
+O seed também cria 3 organizações (uma delas, o Hospital Bem Estar, sem contrato: não pode receber lote), 3 contratos, 2 destinos parceiros e 4 lotes, um em cada situação: **finalizado**, **em triagem**, **recebido e parado há 35 dias** e **cancelado**. Os equipamentos vão de `GC-2026-000001` a `GC-2026-000009` (o ano é o do dia em que o seed rodou).
 
 ### Permissões (princípio do menor privilégio)
 
@@ -243,7 +243,7 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 
 | Rota | O que faz |
 |---|---|
-| `GET /usuarios?pagina=1` | Lista |
+| `GET /usuarios?pagina=1&busca=&papel=&ativo=&bloqueado=` | Lista, com busca por nome ou login e filtros (ex.: `bloqueado=true` mostra quem errou a senha 5 vezes) |
 | `GET /usuarios/:id` | Mostra um |
 | `POST /usuarios` | Cria, com senha provisória |
 | `PATCH /usuarios/:id` | Edita nome, papel e/ou ativo (desativar = `ativo: false`) |
@@ -257,7 +257,8 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `GET /organizacoes/resumo` | Ativas com contrato vigente (lista do gestor) |
 | `GET /organizacoes/:id` | Mostra uma, com `temContratoVigente` |
 | `POST /organizacoes` · `PATCH /organizacoes/:id` | Cria · edita (desativar = `ativo: false`) |
-| `GET /organizacoes/:id/contratos` | Histórico de contratos, com a situação de cada um |
+| `GET /contratos?pagina=1&situacao=&vencendoEmDias=&organizacaoId=` | Lista todos os contratos, do vencimento mais próximo ao mais distante (ex.: `vencendoEmDias=30` mostra os vigentes que vencem nos próximos 30 dias) |
+| `GET /organizacoes/:id/contratos` | Histórico de contratos de uma organização, com a situação de cada um |
 | `GET /contratos/:id` | Mostra um contrato |
 | `POST /contratos` | Cria |
 | `PATCH /contratos/:id` · `DELETE /contratos/:id` | Edita · apaga (só contrato futuro) |
@@ -283,17 +284,18 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `PATCH /equipamentos/:id` | Edita tipo, marca, modelo, ano e/ou peso |
 | `PATCH /equipamentos/:id/avaliacao` | Avalia o estado físico |
 | `POST /equipamentos/:id/movimentar` | Muda o status pelo id (gera a movimentação) |
-| `POST /equipamentos/codigo/:codigo/movimentar` | Muda o status pelo código de barras, ex.: `GC-0007` |
-| `POST /equipamentos/movimentar-varios` | Muda o status de vários de uma vez, pelos códigos de barras (`"codigos": ["GC-0007", "GC-0008"]`), tudo ou nada |
+| `POST /equipamentos/codigo/:codigo/movimentar` | Muda o status pelo código de barras, ex.: `GC-2026-000007` |
+| `POST /equipamentos/movimentar-varios` | Muda o status de vários de uma vez, pelos códigos de barras (`"codigos": ["GC-2026-000007", "GC-2026-000008"]`), tudo ou nada |
+| `GET /movimentacoes?pagina=1&inicio=&fim=&destino=&responsavelId=` | Todas as movimentações, com filtros (ex.: tudo o que foi para `DESCARTE_SEGURO` no mês) |
 
 **Painel, relatórios, auditoria e parâmetros**
 
 | Rota | O que faz |
 |---|---|
-| `GET /painel` | Números resumidos; cada papel vê a sua parte |
-| `GET /relatorios/destinacao?organizacaoId=&inicio=&fim=` | Kg de uma organização por destinação e parceiro, no período |
+| `GET /painel` | Números resumidos; cada papel vê a sua parte (o cadastro inclui os contratos que vencem nos próximos 30 dias) |
+| `GET /relatorios/destinacao?organizacaoId=&inicio=&fim=` | Kg por destinação e parceiro, no período; sem `organizacaoId`, soma todas as organizações |
 | `GET /relatorios/financeiro?inicio=&fim=` | Receita bruta, impostos e líquida por organização, no período |
-| `GET /auditoria?pagina=1&tabela=&registroId=&usuarioId=` | Registro de todas as alterações |
+| `GET /auditoria?pagina=1&inicio=&fim=&tabela=&registroId=&usuarioId=` | Registro de todas as alterações, com filtro de período |
 | `GET /parametros` · `PATCH /parametros` | Consulta · altera alíquota, depreciação e dias de lote parado |
 
 As datas usam o formato `AAAA-MM-DD`. As listagens são paginadas (20 por página; 50 na auditoria) e informam `pagina`, `totalPaginas` e `total`.
@@ -373,7 +375,7 @@ Todos os ids são **UUID**.
 - O lote guarda **desde quando** está no status atual (`dataStatus`). Um lote é considerado **parado** quando fica em `RECEBIDO` ou `EM_TRIAGEM` por mais dias que o configurado em Parametros (padrão: 30).
 
 ### Equipamentos
-- `codigoBarrasInterno` é único. A posição no lote é numerada automaticamente.
+- O código de barras é **gerado pelo sistema** no formato `GC-AAAA-000000`: prefixo da empresa, ano do cadastro e um número sequencial vindo de uma `SEQUENCE` do PostgreSQL, que nunca entrega o mesmo número duas vezes, mesmo com cadastros simultâneos. O código não carrega tipo nem cliente, porque esses dados podem ser corrigidos depois e a etiqueta impressa não muda. Se um cadastro falhar, o número usado é descartado (a sequência pode ter "buracos", o que é normal). A posição no lote também é numerada automaticamente.
 - Pode ser editado só enquanto `AGUARDANDO_TRIAGEM`.
 - O **estado físico** muda pela avaliação, em qualquer status não final. Se cair **2 ou mais níveis**, a justificativa é obrigatória.
 - O **status** muda só pela movimentação, seguindo estas transições:
@@ -417,7 +419,7 @@ Como na AV1: cada contrato entra com **valor mensal ÷ 30 × dias vigentes dentr
 |---|---|
 | Prisma + PostgreSQL | `prisma/schema.prisma`, com migrações versionadas |
 | JWT | `@fastify/jwt`, token de 30 minutos com id, papel e `precisaTrocarSenha` |
-| `$transaction` | Criar lote com equipamentos; movimentar equipamento (atualiza o equipamento, grava a movimentação e recalcula o lote); movimentar vários; cancelar lote; adicionar equipamento. Todas as gravações passam por `executarTransacao` (`src/lib/transacao.ts`) |
+| `$transaction` | Criar lote com equipamentos; movimentar equipamento (atualiza o equipamento, grava a movimentação e recalcula o lote); movimentar vários; cancelar lote; adicionar equipamento. Todas as gravações passam por `executarTransacao` (`src/lib/transacao.ts`). Para o status automático do lote não ficar errado quando duas pessoas movimentam equipamentos do mesmo lote ao mesmo tempo, o recálculo trava a linha do lote (`SELECT ... FOR UPDATE`) e a segunda transação espera a primeira terminar |
 | Versionamento otimista | Campo `versao` em Usuario, Organizacao, Contrato, Destino, Lote, Equipamento e Parametros. A alteração só acontece se a versão enviada for a atual (`updateMany where { id, versao }`); senão responde **409** |
 | Seed | `prisma/seed.ts`, com massa de dados em estados variados. Ele usa os próprios services, então os dados passam pelas mesmas regras do sistema |
 | Unicidade | `@unique` em CNPJ (Organizacao e Destino), `codigoBarrasInterno` e `login`. Os services conferem antes de gravar, e o banco garante mesmo assim (erro `P2002` → 409) |

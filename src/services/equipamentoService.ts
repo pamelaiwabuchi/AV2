@@ -183,7 +183,7 @@ export async function movimentarVarios(ids: string[], pedido: PedidoMudanca) {
             lotesAfetados.add(equipamento.loteId);
         }
 
-        for (const loteId of lotesAfetados) {
+        for (const loteId of [...lotesAfetados].sort()) {
             await movimentacaoService.recalcularStatusLote(tx, loteId);
         }
     });

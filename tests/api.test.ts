@@ -84,8 +84,19 @@ test("gestor vê o resumo de organizações só com as ativas e com contrato vig
     assert.equal(nomes.includes("Hospital Bem Estar"), false);
 });
 
+async function equipamentosDoLoteFinalizado() {
+    const lote = (await pedir("/lotes?status=FINALIZADO", tokenAuditor)).json().itens[0];
+    return (await pedir(`/lotes/${lote.id}`, tokenAuditor)).json().equipamentos;
+}
+
+test("código de barras gerado segue o padrão GC-AAAA-000000", async () => {
+    const [notebook] = await equipamentosDoLoteFinalizado();
+    assert.match(notebook.codigoBarrasInterno, /^GC-\d{4}-\d{6}$/);
+});
+
 test("busca por código de barras traz a depreciação", async () => {
-    const resposta = await pedir("/equipamentos/codigo/GC-0002", tokenGestor);
+    const monitor = (await equipamentosDoLoteFinalizado())[1];
+    const resposta = await pedir(`/equipamentos/codigo/${monitor.codigoBarrasInterno}`, tokenGestor);
     assert.equal(resposta.statusCode, 200);
     assert.equal(resposta.json().depreciacao.percentual, 100);
 });
@@ -96,7 +107,7 @@ test("lote finalizado do seed tem o status calculado certo", async () => {
 });
 
 test("histórico do equipamento mostra todas as movimentações em ordem", async () => {
-    const equipamento = (await pedir("/equipamentos/codigo/GC-0001", tokenAuditor)).json();
+    const [equipamento] = await equipamentosDoLoteFinalizado();
     const historico = (await pedir(`/equipamentos/${equipamento.id}/historico`, tokenAuditor)).json();
     const destinos = historico.map((movimentacao: { destino: string }) => movimentacao.destino);
 

@@ -1,5 +1,16 @@
 import { prisma } from "../lib/prisma.js";
 import type { Transacao } from "../lib/transacao.js";
+import type { Prisma } from "../generated/prisma/client.js";
+import { hojeSemHora, somarDias } from "../utils/datas.js";
+import { montarPagina } from "../utils/paginacao.js";
+
+const TAMANHO_PAGINA = 20;
+
+export interface FiltrosContrato {
+    situacao?: "FUTURO" | "VIGENTE" | "ENCERRADO";
+    vencendoEmDias?: number;
+    organizacaoId?: string;
+}
 
 export interface DadosContrato {
     dataAssinatura: Date;
@@ -14,6 +25,50 @@ export async function listarContratosDaOrganizacao(organizacaoId: string) {
         where: { organizacaoId },
         orderBy: { dataAssinatura: "desc" },
     });
+}
+
+function montarFiltroContratos(filtros: FiltrosContrato) {
+    const hoje = hojeSemHora();
+    const condicoes: Prisma.ContratoWhereInput[] = [];
+
+    if (filtros.organizacaoId) {
+        condicoes.push({ organizacaoId: filtros.organizacaoId });
+    }
+
+    if (filtros.situacao === "FUTURO") {
+        condicoes.push({ dataAssinatura: { gt: hoje } });
+    }
+
+    if (filtros.situacao === "ENCERRADO") {
+        condicoes.push({ dataVencimento: { lt: hoje } });
+    }
+
+    if (filtros.situacao === "VIGENTE" || filtros.vencendoEmDias !== undefined) {
+        condicoes.push({ dataAssinatura: { lte: hoje }, dataVencimento: { gte: hoje } });
+    }
+
+    if (filtros.vencendoEmDias !== undefined) {
+        condicoes.push({ dataVencimento: { lte: somarDias(hoje, filtros.vencendoEmDias) } });
+    }
+
+    return { AND: condicoes };
+}
+
+export async function listarContratos(pagina: number, filtros: FiltrosContrato) {
+    const where = montarFiltroContratos(filtros);
+
+    const [itens, total] = await Promise.all([
+        prisma.contrato.findMany({
+            where,
+            include: { organizacao: { select: { razaoSocial: true, cnpj: true } } },
+            orderBy: { dataVencimento: "asc" },
+            skip: (pagina - 1) * TAMANHO_PAGINA,
+            take: TAMANHO_PAGINA,
+        }),
+        prisma.contrato.count({ where }),
+    ]);
+
+    return montarPagina(itens, total, pagina, TAMANHO_PAGINA);
 }
 
 export async function buscarContratoPorId(id: string) {

@@ -71,9 +71,8 @@ function dia(diasAPartirDeHoje: number) {
     return new Date(Date.UTC(data.getFullYear(), data.getMonth(), data.getDate()));
 }
 
-function equipamento(codigo: string, tipo: DadosEquipamentoNovo["tipo"], marca: string, peso: number): DadosEquipamentoNovo {
+function equipamento(tipo: DadosEquipamentoNovo["tipo"], marca: string, peso: number): DadosEquipamentoNovo {
     return {
-        codigoBarrasInterno: codigo,
         tipo,
         marca,
         modelo: "Modelo padrão",
@@ -124,7 +123,7 @@ async function criarDadosDeExemplo() {
 
     const finalizado = await loteService.criar(
         { organizacaoId: techCorp.id, dataEntrada: dia(-40), notaFiscal: "NF-1001", transportadora: "TransLog", observacoes: null },
-        [equipamento("GC-0001", "NOTEBOOK", "Dell", 2.3), equipamento("GC-0002", "MONITOR", "LG", 4.5), equipamento("GC-0003", "IMPRESSORA", "HP", 7.8)],
+        [equipamento("NOTEBOOK", "Dell", 2.3), equipamento("MONITOR", "LG", 4.5), equipamento("IMPRESSORA", "HP", 7.8)],
         idAdmin,
     );
     const [notebook, monitor, impressora] = finalizado.equipamentos.map((item) => item.id);
@@ -137,7 +136,7 @@ async function criarDadosDeExemplo() {
 
     const emTriagem = await loteService.criar(
         { organizacaoId: escola.id, dataEntrada: dia(-5), notaFiscal: "NF-2001", transportadora: "Rápido Sul", observacoes: "Caixas sem etiqueta" },
-        [equipamento("GC-0004", "COMPUTADOR_MESA", "Positivo", 8.2), equipamento("GC-0005", "SERVIDOR", "IBM", 25), equipamento("GC-0006", "ROTEADOR", "TP-Link", 0.4)],
+        [equipamento("COMPUTADOR_MESA", "Positivo", 8.2), equipamento("SERVIDOR", "IBM", 25), equipamento("ROTEADOR", "TP-Link", 0.4)],
         idAdmin,
     );
     const [computador, servidor] = emTriagem.equipamentos.map((item) => item.id);
@@ -146,7 +145,7 @@ async function criarDadosDeExemplo() {
 
     const parado = await loteService.criar(
         { organizacaoId: techCorp.id, dataEntrada: dia(-35), notaFiscal: "NF-1002", transportadora: "TransLog", observacoes: null },
-        [equipamento("GC-0007", "CABO_ESTRUTURADO", "Furukawa", 12), equipamento("GC-0008", "FONTE_ALIMENTACAO", "Corsair", 1.5)],
+        [equipamento("CABO_ESTRUTURADO", "Furukawa", 12), equipamento("FONTE_ALIMENTACAO", "Corsair", 1.5)],
         idAdmin,
     );
     // Simula um lote parado: recebido há 35 dias sem andar (o sistema sozinho só grava a data de hoje).
@@ -154,7 +153,7 @@ async function criarDadosDeExemplo() {
 
     const cancelado = await loteService.criar(
         { organizacaoId: escola.id, dataEntrada: dia(-2), notaFiscal: "NF-2002", transportadora: "Rápido Sul", observacoes: "Enviado por engano" },
-        [equipamento("GC-0009", "NOTEBOOK", "Lenovo", 2.1)],
+        [equipamento("NOTEBOOK", "Lenovo", 2.1)],
         idAdmin,
     );
     await loteService.cancelar(cancelado.id, cancelado.versao, idAdmin);
