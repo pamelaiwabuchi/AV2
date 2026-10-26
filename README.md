@@ -10,6 +10,25 @@ Esta é a evolução da [AV1](https://github.com/pamelaiwabuchi/AV1), que era um
 
 ---
 
+## Início rápido
+
+Precisa só do [Docker](https://www.docker.com/) instalado. Os comandos são os mesmos no Linux e no Windows:
+
+```bash
+git clone https://github.com/pamelaiwabuchi/AV2.git
+cd AV2
+docker compose up -d --build
+```
+
+1. Abra <http://localhost:3333/docs>.
+2. Em `POST /auth/login`, entre com `{ "login": "admin", "senha": "Greencode1" }`.
+3. Clique em **Authorize**, cole o token e troque a senha em `PATCH /auth/senha` (a do seed é provisória).
+4. Use o token novo no **Authorize**. Pronto: o [roteiro rápido de teste](#roteiro-rápido-de-teste-uns-5-minutos) mostra o que experimentar.
+
+Para desligar: `docker compose down`. Para instalar sem Docker, veja a [seção 2](#2-instalação).
+
+---
+
 ## Sumário
 
 1. [Requisitos](#1-requisitos)
