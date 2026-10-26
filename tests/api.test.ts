@@ -69,8 +69,8 @@ test("gestor não lista usuários (403) e auditor não altera parâmetros (403)"
 test("departamentos do seed e funcionários de um departamento (só ADMINISTRADOR)", async () => {
     const lista = await pedir("/departamentos?busca=almoxarifado", tokenAdmin);
     assert.equal(lista.statusCode, 200);
-    const almoxarifado = lista.json().itens[0];
-    assert.equal(almoxarifado.nome, "Almoxarifado");
+    const almoxarifado = lista.json().itens.find((departamento: { nome: string }) => departamento.nome === "Almoxarifado");
+    assert.ok(almoxarifado);
 
     const usuarios = await pedir(`/departamentos/${almoxarifado.id}/usuarios`, tokenAdmin);
     const logins = usuarios.json().itens.map((usuario: { login: string }) => usuario.login);
@@ -89,17 +89,37 @@ test("usuário pode ser buscado pelo login e filtrado pelo nome do departamento"
     assert.ok(logins.includes("ana.operadora"));
 });
 
-test("filtros por nome, CNPJ (com ou sem pontuação) e ano", async () => {
-    const porNome = await pedir("/lotes?organizacaoNome=techcorp", tokenAdmin);
-    const porCnpj = await pedir("/lotes?organizacaoCnpj=52.601.815/0001-20", tokenAdmin);
-    assert.equal(porNome.json().total, 2);
-    assert.equal(porCnpj.json().total, 2);
+// Estes testes não contam registros: conferem que o filtro traz os dados do seed
+// e só eles, para continuarem passando quando alguém cadastra coisas novas.
+test("filtros por nome e CNPJ (com ou sem pontuação)", async () => {
+    const porNome = (await pedir("/lotes?organizacaoNome=techcorp", tokenAdmin)).json();
+    const porCnpj = (await pedir("/lotes?organizacaoCnpj=52.601.815/0001-20", tokenAdmin)).json();
+    const notasPorNome = porNome.itens.map((lote: { notaFiscal: string }) => lote.notaFiscal);
+    const cnpjsPorCnpj = porCnpj.itens.map((lote: { organizacao: { cnpj: string } }) => lote.organizacao.cnpj);
 
-    const porParceiro = await pedir("/equipamentos?destinoNome=ecopeças", tokenAdmin);
-    assert.equal(porParceiro.json().total, 1);
+    assert.ok(notasPorNome.includes("NF-1001"));
+    assert.equal(notasPorNome.includes("NF-2001"), false);
+    assert.ok(cnpjsPorCnpj.length > 0);
+    assert.ok(cnpjsPorCnpj.every((cnpj: string) => cnpj === "52601815000120"));
 
-    const anoSemContratos = await pedir("/contratos?ano=2000", tokenAdmin);
-    assert.equal(anoSemContratos.json().total, 0);
+    const porParceiro = (await pedir("/equipamentos?destinoNome=ecopeças", tokenAdmin)).json();
+    const parceiros = porParceiro.itens.map((equipamento: { destino: { razaoSocial: string } }) => equipamento.destino.razaoSocial);
+    assert.ok(parceiros.length > 0);
+    assert.ok(parceiros.every((nome: string) => nome === "EcoPeças Distribuidora"));
+});
+
+test("filtro de ano nos contratos traz só os que valeram naquele ano", async () => {
+    const ano = new Date().getFullYear();
+    const resposta = (await pedir(`/contratos?ano=${ano}`, tokenAdmin)).json();
+    const primeiroDia = `${ano}-01-01`;
+    const ultimoDia = `${ano}-12-31`;
+
+    assert.ok(resposta.itens.length > 0);
+
+    for (const contrato of resposta.itens) {
+        assert.ok(contrato.dataAssinatura.slice(0, 10) <= ultimoDia);
+        assert.ok(contrato.dataVencimento.slice(0, 10) >= primeiroDia);
+    }
 });
 
 test("listagem de usuários nunca devolve o hash da senha", async () => {
@@ -120,8 +140,15 @@ test("gestor vê o resumo de organizações só com as ativas e com contrato vig
     assert.equal(nomes.includes("Hospital Bem Estar"), false);
 });
 
+// Procura o lote do seed pela nota fiscal, e não pela posição na lista,
+// porque lotes novos podem aparecer antes dele.
+async function loteDoSeed(notaFiscal: string, papelToken: string) {
+    const lotes = (await pedir(`/lotes?notaFiscal=${notaFiscal}`, papelToken)).json().itens;
+    return lotes.find((lote: { notaFiscal: string }) => lote.notaFiscal === notaFiscal);
+}
+
 async function equipamentosDoLoteFinalizado() {
-    const lote = (await pedir("/lotes?status=FINALIZADO", tokenAuditor)).json().itens[0];
+    const lote = await loteDoSeed("NF-1001", tokenAuditor);
     return (await pedir(`/lotes/${lote.id}`, tokenAuditor)).json().equipamentos;
 }
 
@@ -138,8 +165,8 @@ test("busca por código de barras traz a depreciação", async () => {
 });
 
 test("lote finalizado do seed tem o status calculado certo", async () => {
-    const resposta = await pedir("/lotes?status=FINALIZADO", tokenAuditor);
-    assert.equal(resposta.json().itens[0].notaFiscal, "NF-1001");
+    const lote = await loteDoSeed("NF-1001", tokenAuditor);
+    assert.equal(lote.statusProcessamento, "FINALIZADO");
 });
 
 test("histórico do equipamento mostra todas as movimentações em ordem", async () => {

@@ -27,9 +27,9 @@ Esta é a evolução da [AV1](https://github.com/pamelaiwabuchi/AV1), que era um
 
 ## 1. Requisitos
 
-- **Node.js 22 ou mais novo** (confira com `node --version`)
-- **PostgreSQL 14 ou mais novo**
 - **Git**
+- **Com Docker:** só o Docker (no Windows, o Docker Desktop).
+- **Sem Docker:** **Node.js 22 ou mais novo** (confira com `node --version`) e **PostgreSQL 14 ou mais novo**.
 
 Funciona em **Windows 10 ou superior** e **Ubuntu 24.04 ou superior** (e derivados). Desenvolvido no Arch Linux.
 
@@ -37,7 +37,35 @@ Funciona em **Windows 10 ou superior** e **Ubuntu 24.04 ou superior** (e derivad
 
 ## 2. Instalação
 
-### 2.1 Instalar o PostgreSQL e criar o banco
+Há dois jeitos: com Docker (2.1), que sobe o banco e a API com um comando, ou instalando tudo no sistema (2.2 a 2.5).
+
+### 2.1 Com Docker
+
+```bash
+git clone https://github.com/pamelaiwabuchi/AV2.git
+cd AV2
+cp .env.example .env        # Windows: copy .env.example .env
+docker compose up -d --build
+```
+
+Preencha o `.env` como explicado na [seção 2.3](#23-baixar-e-configurar-o-projeto) antes do último comando. O `DATABASE_URL` do `.env` é ignorado: o `docker-compose.yml` aponta a API para o banco do Docker.
+
+O `docker compose up` cria dois contêineres:
+
+- **banco**: PostgreSQL 18, sem porta aberta para fora (só a API fala com ele). Os dados ficam no volume `dados-banco` e sobrevivem quando os contêineres são desligados.
+- **api**: montada pelo `Dockerfile`. Só liga quando o banco responde (healthcheck). Ao ligar, aplica as migrações, roda o seed (que não duplica dados) e sobe o servidor na porta 3333.
+
+Para conferir: <http://localhost:3333/health>.
+
+| Comando | O que faz |
+|---|---|
+| `docker compose logs -f api` | Mostra o log da API |
+| `docker compose down` | Desliga (mantém os dados) |
+| `docker compose down -v` | Desliga e **apaga** o banco do Docker |
+
+> Não rode o Docker e o `npm run dev` ao mesmo tempo: os dois usam a porta 3333.
+
+### 2.2 Instalar o PostgreSQL e criar o banco
 
 **Ubuntu:**
 
@@ -60,7 +88,7 @@ CREATE DATABASE greencode OWNER greencode;
 
 > O `CREATEDB` só é necessário para quem for desenvolver (`npx prisma migrate dev`), porque esse comando cria um banco temporário para conferir as migrações. Para só instalar e rodar, ele pode ser omitido.
 
-### 2.2 Baixar e configurar o projeto
+### 2.3 Baixar e configurar o projeto
 
 ```bash
 git clone https://github.com/pamelaiwabuchi/AV2.git
@@ -96,7 +124,7 @@ Para gerar um `JWT_SECRET` aleatório:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### 2.3 Criar as tabelas e os dados iniciais
+### 2.4 Criar as tabelas e os dados iniciais
 
 ```bash
 npx prisma migrate deploy
@@ -108,7 +136,7 @@ npx prisma db seed
 - `generate` gera o Prisma Client (o código TypeScript de acesso ao banco), em `src/generated/prisma`.
 - `db seed` cria o administrador, os parâmetros globais e uma **massa de dados de exemplo** (ver [seção 4](#4-usuários-e-permissões)).
 
-### 2.4 Rodar
+### 2.5 Rodar
 
 ```bash
 npm run dev
@@ -340,6 +368,8 @@ prisma/
 ├── migrations/        # migrações versionadas (inclui o SQL do trigger de auditoria)
 └── seed.ts            # dados iniciais e de exemplo
 tests/                 # testes automatizados
+Dockerfile             # imagem da API
+docker-compose.yml     # sobe o banco e a API juntos
 ```
 
 O caminho de uma requisição, por exemplo `POST /lotes`:
@@ -471,6 +501,7 @@ Como na AV1: cada contrato entra com **valor mensal ÷ 30 × dias vigentes dentr
 - **Auditoria por trigger, e não no código.** Uma função genérica no PostgreSQL (`registrar_auditoria`) é ligada a todas as tabelas. Nenhuma alteração escapa da auditoria, nem as feitas fora da API. O usuário chega ao banco por `set_config('app.usuario_id', ...)` dentro de cada transação. A senha nunca é gravada: aparece só `"(senha alterada)"`.
 - **Validação com JSON Schema do Fastify.** Ela confere o **formato** (campo obrigatório, tipo, UUID, data, e-mail) antes de a rota rodar, e alimenta o Swagger. As **regras de negócio** (CNPJ válido, senha forte, transições) ficam nos services e respondem 422, com mensagens em português.
 - **Permissão antes da validação.** As permissões rodam no hook `onRequest`, antes da validação do corpo. Assim, quem não tem permissão recebe 403, e não detalhes sobre o formato dos dados.
+- **Docker com banco e API.** Quem for rodar o projeto só precisa do Docker, sem instalar e configurar o PostgreSQL. A porta do banco não é aberta para fora (só a API usa, e não briga com um PostgreSQL já instalado na 5432). O seed roda a cada inicialização porque não duplica dados. O servidor é iniciado com `exec` para receber o sinal de desligamento do Docker e fazer o graceful shutdown.
 
 ### Alternativas consideradas e rejeitadas
 
@@ -481,7 +512,6 @@ Como na AV1: cada contrato entra com **valor mensal ÷ 30 × dias vigentes dentr
 | Recuperação de senha por e-mail | Exigiria servidor de e-mail; o administrador redefine a senha |
 | CHECK constraints para todas as regras | As regras já ficam nos services, com mensagens claras; os triggers protegem o que não pode mudar |
 | Parâmetros em tabela chave-valor | Colunas fixas e tipadas evitam valores no formato errado |
-| Docker | Fica como melhoria futura; o PostgreSQL é instalado direto no sistema |
 
 ### Melhorias que a AV1 apontava e que foram feitas
 
@@ -502,10 +532,10 @@ Como na AV1: cada contrato entra com **valor mensal ÷ 30 × dias vigentes dentr
 npm test
 ```
 
-São 20 testes automatizados (Node test runner):
+São 25 testes automatizados (Node test runner):
 
 - `tests/regras.test.ts`: regras puras, sem banco (CNPJ, força da senha, transições de status, cálculo do status do lote).
-- `tests/api.test.ts`: requisições à API (sem subir a porta, com `app.inject`) usando os dados do seed. Conferem permissões (401, 403), validação (400), resumo do gestor, depreciação, status do lote finalizado, histórico em ordem, lotes parados, painel por papel, auditoria sem senha e a proteção do trigger.
+- `tests/api.test.ts`: requisições à API (sem subir a porta, com `app.inject`) usando os dados do seed. Conferem permissões (401, 403), validação (400), resumo do gestor, depreciação, status do lote finalizado, histórico em ordem, lotes parados, painel por papel, departamentos, filtros por nome, CNPJ e ano, auditoria sem senha e a proteção do trigger. Eles procuram os dados do seed pelo nome ou pela nota fiscal, sem contar registros, então continuam passando depois que você cadastra dados novos pelo Swagger.
 
 > Rode o `npx prisma db seed` antes. Os testes de API só fazem consultas, porque Auditoria e Movimentacao não podem ser apagadas: testes que gravam deixariam registros permanentes no banco. O fluxo de escrita completo (criar lote, triagem, destinação, baixa, cancelamento) é exercitado pelo próprio seed, que usa os services do sistema.
 
@@ -517,5 +547,4 @@ São 20 testes automatizados (Node test runner):
 - **Dependência do relógio do servidor.** "Hoje" (vigência, lotes parados, bloqueio, depreciação) vem do relógio do servidor.
 - **Sobreposição de contratos em pedidos simultâneos.** A checagem é feita no service. Dois pedidos exatamente ao mesmo tempo para a mesma organização poderiam passar os dois. Melhoria: uma constraint de exclusão do PostgreSQL (`EXCLUDE USING gist`) nos períodos.
 - **Testes de escrita.** Melhoria: um banco separado só para testes, recriado a cada execução, para testar também as gravações.
-- **Docker**, para subir o banco e a API com um comando só.
 - **Front-end (SPA)**, consumindo esta API.

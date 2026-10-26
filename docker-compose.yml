@@ -1,0 +1,29 @@
+services:
+  banco:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: greencode
+      POSTGRES_PASSWORD: greencode
+      POSTGRES_DB: greencode
+    volumes:
+      - dados-banco:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U greencode -d greencode"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://greencode:greencode@banco:5432/greencode
+      PORT: 3333
+    ports:
+      - "3333:3333"
+    depends_on:
+      banco:
+        condition: service_healthy
+
+volumes:
+  dados-banco:
