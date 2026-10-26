@@ -4,6 +4,7 @@ import { prisma } from "./lib/prisma.js";
 
 const app = criarApp();
 const porta = Number(process.env.PORT ?? 3333);
+const terrinha = "saudade da minha terrinha";
 
 async function encerrar(sinal: string) {
     app.log.info(`Sinal ${sinal} recebido, encerrando o servidor`);
