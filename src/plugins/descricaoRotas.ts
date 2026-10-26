@@ -72,7 +72,7 @@ export const resumos: Record<string, string> = {
     "POST /organizacoes": "Cadastra uma organização (OPERADOR_CADASTRO)",
     "PATCH /organizacoes/:id": "Altera dados da organização; ativo false desativa (OPERADOR_CADASTRO)",
 
-    "GET /contratos": "Lista os contratos; filtros de situação, organização e vencendoEmDias, ex.: 30 (OPERADOR_CADASTRO, AUDITOR)",
+    "GET /contratos": "Lista os contratos; filtros de situação, vencendoEmDias (ex.: 30), ano, organização por id, nome ou CNPJ (OPERADOR_CADASTRO, AUDITOR)",
     "GET /organizacoes/:id/contratos": "Lista os contratos de uma organização (OPERADOR_CADASTRO, AUDITOR)",
     "GET /contratos/:id": "Mostra um contrato com a situação FUTURO, VIGENTE ou ENCERRADO (OPERADOR_CADASTRO, AUDITOR)",
     "POST /contratos": "Cria um contrato (OPERADOR_CADASTRO)",
@@ -86,7 +86,7 @@ export const resumos: Record<string, string> = {
     "POST /destinos": "Cadastra um destino (OPERADOR_CADASTRO)",
     "PATCH /destinos/:id": "Altera um destino; ativo false desativa (OPERADOR_CADASTRO)",
 
-    "GET /lotes": "Lista os lotes, com filtro por status e organização (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
+    "GET /lotes": "Lista os lotes; filtros de status, ano de entrada, nota fiscal, transportadora e organização por id, nome ou CNPJ (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /lotes/parados": "Lotes sem andar há mais dias que o configurado (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /lotes/:id": "Mostra um lote com seus equipamentos e peso total (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "POST /lotes": "Registra a chegada de um lote com seus equipamentos; o código de barras é gerado pelo sistema (GESTOR)",
@@ -94,7 +94,7 @@ export const resumos: Record<string, string> = {
     "PATCH /lotes/:id/cancelar": "Cancela um lote RECEBIDO e todos os seus equipamentos (GESTOR)",
     "POST /lotes/:id/equipamentos": "Adiciona um equipamento a um lote; o código de barras é gerado pelo sistema (GESTOR)",
 
-    "GET /equipamentos": "Lista os equipamentos, com filtros (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
+    "GET /equipamentos": "Lista os equipamentos; filtros de status, tipo, código, marca, modelo, ano de fabricação, ano de entrada, estado físico, lote, organização e parceiro de destino por id, nome ou CNPJ (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /equipamentos/codigo/:codigo": "Busca pelo código de barras, ex.: GC-2026-000001 (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /equipamentos/:id": "Mostra um equipamento com a depreciação (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /equipamentos/:id/historico": "Histórico de movimentações do equipamento (GESTOR, AUDITOR)",
@@ -105,7 +105,7 @@ export const resumos: Record<string, string> = {
     "POST /equipamentos/codigo/:codigo/movimentar": "Muda o status de um equipamento pelo código de barras (GESTOR)",
     "POST /equipamentos/movimentar-varios": "Muda o status de vários equipamentos pelos códigos de barras; tudo ou nada (GESTOR)",
 
-    "GET /movimentacoes": "Lista as movimentações; filtros de período, status de destino e responsável (id ou login) (GESTOR, AUDITOR)",
+    "GET /movimentacoes": "Lista as movimentações; filtros de período ou ano, status de destino, código do equipamento e responsável (id ou login) (GESTOR, AUDITOR)",
 
     "GET /painel": "Resumo com os números que interessam ao seu papel (todos)",
     "GET /relatorios/destinacao": "Kg por tipo de destinação e parceiro, de uma organização ou de todas (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
@@ -113,11 +113,13 @@ export const resumos: Record<string, string> = {
     "GET /organizacoes/:id/certificado": "Baixa o certificado em PDF com os lotes da organização finalizados no período (GESTOR, OPERADOR_CADASTRO, AUDITOR)",
     "GET /relatorios/financeiro": "Receita, impostos e receita líquida por organização (AUDITOR)",
 
-    "GET /auditoria": "Histórico de todas as alterações; filtros de período, tabela, registro e usuário (id ou login) (AUDITOR)",
+    "GET /auditoria": "Histórico de todas as alterações; filtros de período ou ano, tabela, registro e usuário (id ou login) (AUDITOR)",
     "GET /parametros": "Mostra alíquota, depreciação e dias de lote parado (AUDITOR)",
     "PATCH /parametros": "Altera os parâmetros globais (ADMINISTRADOR)",
 
     "GET /health": "Confere se o servidor está no ar (sem login)",
+    "GET /": "Abre a documentação (Swagger)",
+
 };
 
 const hoje = new Date().toISOString().slice(0, 10);

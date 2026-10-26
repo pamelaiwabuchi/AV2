@@ -89,6 +89,19 @@ test("usuário pode ser buscado pelo login e filtrado pelo nome do departamento"
     assert.ok(logins.includes("ana.operadora"));
 });
 
+test("filtros por nome, CNPJ (com ou sem pontuação) e ano", async () => {
+    const porNome = await pedir("/lotes?organizacaoNome=techcorp", tokenAdmin);
+    const porCnpj = await pedir("/lotes?organizacaoCnpj=52.601.815/0001-20", tokenAdmin);
+    assert.equal(porNome.json().total, 2);
+    assert.equal(porCnpj.json().total, 2);
+
+    const porParceiro = await pedir("/equipamentos?destinoNome=ecopeças", tokenAdmin);
+    assert.equal(porParceiro.json().total, 1);
+
+    const anoSemContratos = await pedir("/contratos?ano=2000", tokenAdmin);
+    assert.equal(anoSemContratos.json().total, 0);
+});
+
 test("listagem de usuários nunca devolve o hash da senha", async () => {
     const resposta = await pedir("/usuarios", tokenAdmin);
     assert.equal(resposta.statusCode, 200);

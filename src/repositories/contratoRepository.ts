@@ -3,6 +3,7 @@ import type { Transacao } from "../lib/transacao.js";
 import type { Prisma } from "../generated/prisma/client.js";
 import { hojeSemHora, somarDias } from "../utils/datas.js";
 import { montarPagina } from "../utils/paginacao.js";
+import { filtroDeEmpresa } from "../utils/filtros.js";
 
 const TAMANHO_PAGINA = 20;
 
@@ -10,6 +11,9 @@ export interface FiltrosContrato {
     situacao?: "FUTURO" | "VIGENTE" | "ENCERRADO";
     vencendoEmDias?: number;
     organizacaoId?: string;
+    organizacaoNome?: string;
+    organizacaoCnpj?: string;
+    ano?: number;
 }
 
 export interface DadosContrato {
@@ -33,6 +37,19 @@ function montarFiltroContratos(filtros: FiltrosContrato) {
 
     if (filtros.organizacaoId) {
         condicoes.push({ organizacaoId: filtros.organizacaoId });
+    }
+
+    const organizacao = filtroDeEmpresa(filtros.organizacaoNome, filtros.organizacaoCnpj);
+
+    if (organizacao) {
+        condicoes.push({ organizacao });
+    }
+
+    // Contratos do ano: os que valeram em pelo menos um dia daquele ano.
+    if (filtros.ano !== undefined) {
+        const primeiroDia = new Date(Date.UTC(filtros.ano, 0, 1));
+        const primeiroDiaDoAnoSeguinte = new Date(Date.UTC(filtros.ano + 1, 0, 1));
+        condicoes.push({ dataAssinatura: { lt: primeiroDiaDoAnoSeguinte }, dataVencimento: { gte: primeiroDia } });
     }
 
     if (filtros.situacao === "FUTURO") {

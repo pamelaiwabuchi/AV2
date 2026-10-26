@@ -7,6 +7,8 @@ import { camposEquipamentoNovo, obrigatoriosEquipamentoNovo } from "./equipament
 import type { DadosEquipamentoNovo } from "../repositories/equipamentoRepository.js";
 import type { DadosEdicaoLote, FiltrosLote } from "../repositories/loteRepository.js";
 import { exigirAlgumCampo } from "../utils/alteracoes.js";
+import { filtroDeAno } from "../utils/datas.js";
+import { contemTexto, filtroDeEmpresa } from "../utils/filtros.js";
 
 interface ParametrosId {
     id: string;
@@ -16,6 +18,11 @@ interface ConsultaLista {
     pagina: number;
     status?: StatusLote;
     organizacaoId?: string;
+    organizacaoNome?: string;
+    organizacaoCnpj?: string;
+    notaFiscal?: string;
+    transportadora?: string;
+    anoEntrada?: number;
 }
 
 interface CorpoCriar {
@@ -49,6 +56,11 @@ const esquemaListar = {
             pagina: { type: "integer", minimum: 1, default: 1 },
             status: { type: "string", enum: Object.values(StatusLote) },
             organizacaoId: { type: "string", format: "uuid" },
+            organizacaoNome: { type: "string" },
+            organizacaoCnpj: { type: "string" },
+            notaFiscal: { type: "string" },
+            transportadora: { type: "string" },
+            anoEntrada: { type: "integer" },
         },
     },
 };
@@ -110,6 +122,24 @@ function montarFiltros(consulta: ConsultaLista) {
 
     if (consulta.organizacaoId) {
         filtros.organizacaoId = consulta.organizacaoId;
+    }
+
+    const organizacao = filtroDeEmpresa(consulta.organizacaoNome, consulta.organizacaoCnpj);
+
+    if (organizacao) {
+        filtros.organizacao = organizacao;
+    }
+
+    if (consulta.notaFiscal) {
+        filtros.notaFiscal = contemTexto(consulta.notaFiscal);
+    }
+
+    if (consulta.transportadora) {
+        filtros.transportadora = contemTexto(consulta.transportadora);
+    }
+
+    if (consulta.anoEntrada !== undefined) {
+        filtros.dataEntrada = filtroDeAno(consulta.anoEntrada);
     }
 
     return filtros;

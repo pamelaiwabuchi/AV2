@@ -1,4 +1,5 @@
 import type { EstadoFisico, StatusRastreamento, TipoEquipamento } from "../generated/prisma/enums.js";
+import type { Prisma } from "../generated/prisma/client.js";
 import type { Transacao } from "../lib/transacao.js";
 import { prisma } from "../lib/prisma.js";
 import { montarPagina } from "../utils/paginacao.js";
@@ -17,16 +18,13 @@ export interface DadosEquipamentoNovo extends DadosEquipamento {
     estadoFisico: EstadoFisico;
 }
 
-export interface FiltrosEquipamento {
-    statusRastreamento?: StatusRastreamento;
-    tipo?: TipoEquipamento;
-    loteId?: string;
-}
+export type FiltrosEquipamento = Prisma.EquipamentoWhereInput;
 
 export async function listarEquipamentos(pagina: number, filtros: FiltrosEquipamento) {
     const [itens, total] = await Promise.all([
         prisma.equipamento.findMany({
             where: filtros,
+            include: { destino: { select: { razaoSocial: true } } },
             orderBy: { codigoBarrasInterno: "asc" },
             skip: (pagina - 1) * TAMANHO_PAGINA,
             take: TAMANHO_PAGINA,

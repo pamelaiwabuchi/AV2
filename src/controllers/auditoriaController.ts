@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { exigirPapel } from "../plugins/autenticacao.js";
 import { ErroConflito } from "../errors/erros.js";
 import { executarTransacao } from "../lib/transacao.js";
-import { filtroDePeriodo } from "../utils/datas.js";
+import { filtroDePeriodoOuAno } from "../utils/datas.js";
 import * as auditoriaRepository from "../repositories/auditoriaRepository.js";
 import * as parametrosRepository from "../repositories/parametrosRepository.js";
 import * as usuarioService from "../services/usuarioService.js";
@@ -15,6 +15,7 @@ interface ConsultaAuditoria extends FiltrosAuditoria {
     usuarioLogin?: string;
     inicio?: string;
     fim?: string;
+    ano?: number;
 }
 
 interface CorpoParametros extends Partial<DadosParametros> {
@@ -34,6 +35,7 @@ const esquemaAuditoria = {
             usuarioLogin: { type: "string" },
             inicio: { type: "string", format: "date" },
             fim: { type: "string", format: "date" },
+            ano: { type: "integer" },
         },
     },
 };
@@ -67,7 +69,7 @@ export async function auditoriaController(app: FastifyInstance) {
     const opcoesParametros = { schema: esquemaParametros, onRequest: somenteAdmin };
 
     app.get<{ Querystring: ConsultaAuditoria }>("/auditoria", opcoesAuditoria, async (request) => {
-        const { pagina, inicio, fim, usuarioLogin, ...filtros } = request.query;
+        const { pagina, inicio, fim, ano, usuarioLogin, ...filtros } = request.query;
 
         // A Auditoria guarda só o id de quem alterou; o login é trocado pelo id aqui.
         if (usuarioLogin) {
@@ -75,7 +77,7 @@ export async function auditoriaController(app: FastifyInstance) {
             filtros.usuarioId = usuario.id;
         }
 
-        return auditoriaRepository.listarAuditoria(pagina, { ...filtros, dataHora: filtroDePeriodo(inicio, fim) });
+        return auditoriaRepository.listarAuditoria(pagina, { ...filtros, dataHora: filtroDePeriodoOuAno(inicio, fim, ano) });
     });
 
     app.get("/parametros", { onRequest: podeConsultar }, async () => {

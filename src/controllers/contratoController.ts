@@ -17,6 +17,9 @@ const esquemaListar = {
             situacao: { type: "string", enum: ["FUTURO", "VIGENTE", "ENCERRADO"] },
             vencendoEmDias: { type: "integer", minimum: 0 },
             organizacaoId: { type: "string", format: "uuid" },
+            organizacaoNome: { type: "string" },
+            organizacaoCnpj: { type: "string" },
+            ano: { type: "integer" },
         },
     },
 };

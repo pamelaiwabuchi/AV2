@@ -231,6 +231,8 @@ Todo usuário vê o próprio perfil, o próprio painel e troca a própria senha.
 
 A lista completa, com os campos de cada rota, está no Swagger (`/docs`). Resumo:
 
+Nas listagens, os filtros de texto (nome, razão social, marca, nota fiscal etc.) aceitam só um pedaço e não diferenciam maiúsculas: `organizacaoNome=tech` acha "TechCorp". O CNPJ também aceita um pedaço, com ou sem pontuação. Em vez do id, organização e destino podem ser filtrados pelo nome ou pelo CNPJ, e usuário pelo login.
+
 As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto com a `versao` atual do registro (ex.: `{ "nome": "Ana Silva", "versao": 1 }`). O que não for enviado continua como está. Sem nenhum campo além da versão, a resposta é 400.
 
 **Autenticação**
@@ -270,7 +272,7 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `GET /organizacoes/resumo` | Ativas com contrato vigente (lista do gestor) |
 | `GET /organizacoes/:id` | Mostra uma, com `temContratoVigente` |
 | `POST /organizacoes` · `PATCH /organizacoes/:id` | Cria · edita (desativar = `ativo: false`) |
-| `GET /contratos?pagina=1&situacao=&vencendoEmDias=&organizacaoId=` | Lista todos os contratos, do vencimento mais próximo ao mais distante (ex.: `vencendoEmDias=30` mostra os vigentes que vencem nos próximos 30 dias) |
+| `GET /contratos?pagina=1&situacao=&vencendoEmDias=&ano=&organizacaoId=&organizacaoNome=&organizacaoCnpj=` | Lista todos os contratos, do vencimento mais próximo ao mais distante (ex.: `vencendoEmDias=30` mostra os vigentes que vencem nos próximos 30 dias; `ano=2026` mostra os que valeram em algum dia de 2026) |
 | `GET /organizacoes/:id/contratos` | Histórico de contratos de uma organização, com a situação de cada um |
 | `GET /contratos/:id` | Mostra um contrato |
 | `POST /contratos` | Cria |
@@ -283,14 +285,14 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 
 | Rota | O que faz |
 |---|---|
-| `GET /lotes?pagina=1&status=&organizacaoId=` | Lista, com filtros |
+| `GET /lotes?pagina=1&status=&anoEntrada=&notaFiscal=&transportadora=&organizacaoId=&organizacaoNome=&organizacaoCnpj=` | Lista, com filtros |
 | `GET /lotes/parados` | Lotes parados no mesmo status há mais dias que o configurado |
 | `GET /lotes/:id` | Mostra um, com os equipamentos e o peso total |
 | `POST /lotes` | Registra a chegada de um lote, já com os equipamentos |
 | `PATCH /lotes/:id` | Edita nota fiscal, transportadora e/ou observações (`observacoes: null` apaga) |
 | `PATCH /lotes/:id/cancelar` | Cancela o lote e todos os equipamentos dele |
 | `POST /lotes/:id/equipamentos` | Adiciona um equipamento |
-| `GET /equipamentos?pagina=1&status=&tipo=&loteId=` | Lista, com filtros |
+| `GET /equipamentos?pagina=1&status=&tipo=&codigo=&marca=&modelo=&anoFabricacao=&anoEntrada=&estadoFisico=&loteId=&organizacaoId=&organizacaoNome=&organizacaoCnpj=&destinoId=&destinoNome=&destinoCnpj=` | Lista, com filtros (ex.: `organizacaoNome=tech&tipo=NOTEBOOK`) |
 | `GET /equipamentos/codigo/:codigo` | Busca pelo código de barras, com a depreciação |
 | `GET /equipamentos/:id` | Mostra um, com a depreciação |
 | `GET /equipamentos/:id/historico` | Linha do tempo das movimentações |
@@ -300,7 +302,7 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `POST /equipamentos/:id/corrigir` | Desfaz uma movimentação errada e as seguintes (`movimentacaoId`, `justificativa`, `versao`) |
 | `POST /equipamentos/codigo/:codigo/movimentar` | Muda o status pelo código de barras, ex.: `GC-2026-000007` |
 | `POST /equipamentos/movimentar-varios` | Muda o status de vários de uma vez, pelos códigos de barras (`"codigos": ["GC-2026-000007", "GC-2026-000008"]`), tudo ou nada |
-| `GET /movimentacoes?pagina=1&inicio=&fim=&destino=&responsavelId=&responsavelLogin=` | Todas as movimentações, com filtros (ex.: tudo o que foi para `DESCARTE_SEGURO` no mês, ou tudo o que `bruno.gestor` fez) |
+| `GET /movimentacoes?pagina=1&inicio=&fim=&ano=&destino=&codigo=&responsavelId=&responsavelLogin=` | Todas as movimentações, com filtros (ex.: tudo o que foi para `DESCARTE_SEGURO` no mês, ou tudo o que `bruno.gestor` fez) |
 
 **Painel, relatórios, auditoria e parâmetros**
 
@@ -311,7 +313,7 @@ As rotas de edição usam **PATCH**: mande só os campos que quer mudar, junto c
 | `GET /relatorios/financeiro?inicio=&fim=` | Receita bruta, impostos e líquida por organização, no período |
 | `GET /lotes/:id/certificado` | Baixa o certificado de destinação final (PDF) de um lote FINALIZADO |
 | `GET /organizacoes/:id/certificado?inicio=&fim=` | Baixa o certificado (PDF) com os lotes da organização finalizados no período |
-| `GET /auditoria?pagina=1&inicio=&fim=&tabela=&registroId=&usuarioId=&usuarioLogin=` | Registro de todas as alterações, com filtro de período; o usuário pode ser informado pelo id ou pelo login |
+| `GET /auditoria?pagina=1&inicio=&fim=&ano=&tabela=&registroId=&usuarioId=&usuarioLogin=` | Registro de todas as alterações, com filtro de período ou ano; o usuário pode ser informado pelo id ou pelo login |
 | `GET /parametros` · `PATCH /parametros` | Consulta · altera alíquota, depreciação e dias de lote parado |
 
 As datas usam o formato `AAAA-MM-DD`. As listagens são paginadas (20 por página; 50 na auditoria) e informam `pagina`, `totalPaginas` e `total`.

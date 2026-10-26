@@ -23,3 +23,17 @@ export function filtroDePeriodo(inicio: string | undefined, fim: string | undefi
 
     return filtro;
 }
+
+// "ano" é um atalho para o período de 1º de janeiro a 31 de dezembro.
+export function filtroDeAno(ano: number) {
+    return filtroDePeriodo(`${ano}-01-01`, `${ano}-12-31`);
+}
+
+// Quando vêm "ano" e "inicio"/"fim" juntos, as datas informadas valem dentro do ano.
+export function filtroDePeriodoOuAno(inicio: string | undefined, fim: string | undefined, ano: number | undefined) {
+    if (ano === undefined) {
+        return filtroDePeriodo(inicio, fim);
+    }
+
+    return filtroDePeriodo(inicio ?? `${ano}-01-01`, fim ?? `${ano}-12-31`);
+}

@@ -2,6 +2,7 @@ import type { StatusLote } from "../generated/prisma/enums.js";
 import type { Transacao } from "../lib/transacao.js";
 import { prisma } from "../lib/prisma.js";
 import { montarPagina } from "../utils/paginacao.js";
+import type { Prisma } from "../generated/prisma/client.js";
 
 const TAMANHO_PAGINA = 20;
 
@@ -16,16 +17,13 @@ export interface DadosLote extends DadosEdicaoLote {
     dataEntrada: Date;
 }
 
-export interface FiltrosLote {
-    statusProcessamento?: StatusLote;
-    organizacaoId?: string;
-}
+export type FiltrosLote = Prisma.LoteWhereInput;
 
 export async function listarLotes(pagina: number, filtros: FiltrosLote) {
     const [itens, total] = await Promise.all([
         prisma.lote.findMany({
             where: filtros,
-            include: { organizacao: { select: { razaoSocial: true } } },
+            include: { organizacao: { select: { razaoSocial: true, cnpj: true } } },
             orderBy: { dataEntrada: "desc" },
             skip: (pagina - 1) * TAMANHO_PAGINA,
             take: TAMANHO_PAGINA,

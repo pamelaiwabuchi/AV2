@@ -47,5 +47,7 @@ export function registrarDocumentacao(app: FastifyInstance) {
     app.register(fastifySwaggerUi, {
         routePrefix: "/docs",
         uiConfig: { persistAuthorization: true },
+        theme: { title: "AV2-GreenCode" },
     });
+
 }

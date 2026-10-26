@@ -4,7 +4,10 @@ import { exigirPapel } from "../plugins/autenticacao.js";
 import { esquemaId, textoObrigatorio } from "../utils/esquemas.js";
 import { EstadoFisico, StatusRastreamento, TipoEquipamento } from "../generated/prisma/enums.js";
 import type { DadosEquipamento, FiltrosEquipamento } from "../repositories/equipamentoRepository.js";
+import type { Prisma } from "../generated/prisma/client.js";
 import { exigirAlgumCampo } from "../utils/alteracoes.js";
+import { filtroDeAno } from "../utils/datas.js";
+import { contemTexto, filtroDeEmpresa } from "../utils/filtros.js";
 
 interface ParametrosId {
     id: string;
@@ -19,6 +22,18 @@ interface ConsultaLista {
     status?: StatusRastreamento;
     tipo?: TipoEquipamento;
     loteId?: string;
+    codigo?: string;
+    marca?: string;
+    modelo?: string;
+    anoFabricacao?: number;
+    estadoFisico?: EstadoFisico;
+    destinoId?: string;
+    destinoNome?: string;
+    destinoCnpj?: string;
+    organizacaoId?: string;
+    organizacaoNome?: string;
+    organizacaoCnpj?: string;
+    anoEntrada?: number;
 }
 
 interface CorpoEditar extends Partial<DadosEquipamento> {
@@ -78,6 +93,18 @@ const esquemaListar = {
             status: statusRastreamento,
             tipo: { type: "string", enum: Object.values(TipoEquipamento) },
             loteId: { type: "string", format: "uuid" },
+            codigo: { type: "string" },
+            marca: { type: "string" },
+            modelo: { type: "string" },
+            anoFabricacao: { type: "integer" },
+            estadoFisico: { type: "string", enum: Object.values(EstadoFisico) },
+            destinoId: { type: "string", format: "uuid" },
+            destinoNome: { type: "string" },
+            destinoCnpj: { type: "string" },
+            organizacaoId: { type: "string", format: "uuid" },
+            organizacaoNome: { type: "string" },
+            organizacaoCnpj: { type: "string" },
+            anoEntrada: { type: "integer" },
         },
     },
 };
@@ -172,7 +199,59 @@ function montarFiltros(consulta: ConsultaLista) {
         filtros.loteId = consulta.loteId;
     }
 
+    if (consulta.codigo) {
+        filtros.codigoBarrasInterno = contemTexto(consulta.codigo);
+    }
+
+    if (consulta.marca) {
+        filtros.marca = contemTexto(consulta.marca);
+    }
+
+    if (consulta.modelo) {
+        filtros.modelo = contemTexto(consulta.modelo);
+    }
+
+    if (consulta.anoFabricacao !== undefined) {
+        filtros.anoFabricacao = consulta.anoFabricacao;
+    }
+
+    if (consulta.estadoFisico) {
+        filtros.estadoFisico = consulta.estadoFisico;
+    }
+
+    if (consulta.destinoId) {
+        filtros.destinoId = consulta.destinoId;
+    }
+
+    const destino = filtroDeEmpresa(consulta.destinoNome, consulta.destinoCnpj);
+
+    if (destino) {
+        filtros.destino = destino;
+    }
+
+    filtros.lote = montarFiltroDoLote(consulta);
     return filtros;
+}
+
+// Organização e ano de entrada ficam no lote do equipamento.
+function montarFiltroDoLote(consulta: ConsultaLista) {
+    const filtroLote: Prisma.LoteWhereInput = {};
+
+    if (consulta.organizacaoId) {
+        filtroLote.organizacaoId = consulta.organizacaoId;
+    }
+
+    const organizacao = filtroDeEmpresa(consulta.organizacaoNome, consulta.organizacaoCnpj);
+
+    if (organizacao) {
+        filtroLote.organizacao = organizacao;
+    }
+
+    if (consulta.anoEntrada !== undefined) {
+        filtroLote.dataEntrada = filtroDeAno(consulta.anoEntrada);
+    }
+
+    return filtroLote;
 }
 
 export async function equipamentoController(app: FastifyInstance) {

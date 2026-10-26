@@ -46,7 +46,12 @@ export function criarApp() {
         sistema.get("/health", async () => {
             return { status: "ok" };
         });
+
+        sistema.get("/", async (request, reply) => {   
+            return reply.redirect("/docs");            
+        });                                            
     });
+
 
     app.register(authController);
     app.register(usuarioController);

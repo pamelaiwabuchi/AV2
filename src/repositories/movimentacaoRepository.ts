@@ -9,6 +9,7 @@ export interface FiltrosMovimentacao {
     destino?: StatusRastreamento;
     responsavelId?: string;
     responsavel?: { login: string };
+    equipamento?: { codigoBarrasInterno: { contains: string; mode: "insensitive" } };
     dataHora?: { gte?: Date; lt?: Date };
 }
 
