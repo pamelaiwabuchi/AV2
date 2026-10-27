@@ -8,9 +8,9 @@ O greencode acompanha o caminho de equipamentos descartados por organizações c
 
 Esta é a evolução da [AV1](https://github.com/pamelaiwabuchi/AV1), que era uma aplicação de linha de comando com arquivos criptografados. Agora o sistema é um servidor monolítico com banco de dados relacional.
 
-## Exemplo visual da aplicação funcionando em dispositivo móvel e laptop de forma simultânea - com atualização no banco de dados em tempo real
+## Demonstração da aplicação em uso simultâneo por dois usuários (celular e notebook), com o banco de dados atualizado em tempo real
 
-https://github.com/user-attachments/assets/4fb679b1-181e-47fa-a76b-ae893ba6a677
+https://github.com/user-attachments/assets/5754d005-0e37-4ec1-8ddb-a613195ffe33
 
 ---
 
