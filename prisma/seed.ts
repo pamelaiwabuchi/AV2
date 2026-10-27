@@ -7,7 +7,7 @@ import * as destinoService from "../src/services/destinoService.js";
 import * as loteService from "../src/services/loteService.js";
 import * as equipamentoService from "../src/services/equipamentoService.js";
 import type { DadosEquipamentoNovo } from "../src/repositories/equipamentoRepository.js";
-import { ID_LOTE_EXEMPLO } from "../src/utils/esquemas.js";
+import { ID_DEPARTAMENTO_EXEMPLO, ID_LOTE_EXEMPLO, ID_ORGANIZACAO_EXEMPLO } from "../src/utils/esquemas.js";
 import type { StatusRastreamento } from "../src/generated/prisma/enums.js";
 
 const CUSTO_BCRYPT = 10;
@@ -23,8 +23,9 @@ async function criarDepartamentos() {
         return;
     }
 
+    // Comercial ganha id fixo para o exemplo de POST /usuarios no Swagger funcionar
     await prisma.departamento.createMany({
-        data: DEPARTAMENTOS.map((nome) => ({ nome })),
+        data: DEPARTAMENTOS.map((nome) => (nome === "Comercial" ? { id: ID_DEPARTAMENTO_EXEMPLO, nome } : { nome })),
     });
 
     console.log(`${DEPARTAMENTOS.length} departamentos criados.`);
@@ -139,7 +140,7 @@ async function criarDadosDeExemplo() {
     await criarUsuariosDeExemplo(idAdmin);
 
     const contato = { telefone: "(12) 3333-4444", enderecoCompleto: "Av. Principal, 100 - São José dos Campos/SP" };
-    const techCorp = await organizacaoService.criar({ ...contato, razaoSocial: "TechCorp Soluções Ltda", cnpj: "52.601.815/0001-20", inscricaoEstadual: "123456789", email: "ti@techcorp.com.br" }, idAdmin);
+    const techCorp = await organizacaoService.criar({ ...contato, id: ID_ORGANIZACAO_EXEMPLO, razaoSocial: "TechCorp Soluções Ltda", cnpj: "52.601.815/0001-20", inscricaoEstadual: "123456789", email: "ti@techcorp.com.br" }, idAdmin);
     const escola = await organizacaoService.criar({ ...contato, razaoSocial: "Escola Futuro Verde", cnpj: "90.830.166/0001-28", inscricaoEstadual: "987654321", email: "contato@futuroverde.edu.br" }, idAdmin);
     await organizacaoService.criar({ ...contato, razaoSocial: "Hospital Bem Estar", cnpj: "13.186.091/0001-43", inscricaoEstadual: "555666777", email: "compras@bemestar.org.br" }, idAdmin);
 

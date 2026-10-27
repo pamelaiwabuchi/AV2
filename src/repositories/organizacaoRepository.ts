@@ -10,6 +10,7 @@ export interface AlteracoesOrganizacao extends Partial<DadosOrganizacao> {
 }
 
 export interface DadosOrganizacao {
+    id?: string; // só o seed informa, para a organização de exemplo ter sempre o mesmo id
     razaoSocial: string;
     cnpj: string;
     inscricaoEstadual: string;

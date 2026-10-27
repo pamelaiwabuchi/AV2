@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import * as certificadoService from "../services/certificadoService.js";
 import { exigirPapel } from "../plugins/autenticacao.js";
-import { esquemaId, esquemaIdLoteExemplo } from "../utils/esquemas.js";
+import { esquemaIdComExemplo, ID_LOTE_EXEMPLO, ID_ORGANIZACAO_EXEMPLO } from "../utils/esquemas.js";
 
 interface ParametrosId {
     id: string;
@@ -12,14 +12,16 @@ interface ConsultaPeriodo {
     fim: string;
 }
 
+const anoAtual = new Date().getFullYear();
+
 const esquemaPeriodo = {
-    params: esquemaId,
+    params: esquemaIdComExemplo(ID_ORGANIZACAO_EXEMPLO),
     querystring: {
         type: "object",
         required: ["inicio", "fim"],
         properties: {
-            inicio: { type: "string", format: "date" },
-            fim: { type: "string", format: "date" },
+            inicio: { type: "string", format: "date", examples: [`${anoAtual}-01-01`] },
+            fim: { type: "string", format: "date", examples: [`${anoAtual}-12-31`] },
         },
     },
 };
@@ -34,7 +36,7 @@ function enviarPdf(reply: FastifyReply, certificado: { numero: string; pdf: Buff
 }
 
 export async function certificadoController(app: FastifyInstance) {
-    app.get<{ Params: ParametrosId }>("/lotes/:id/certificado", { schema: { params: esquemaIdLoteExemplo }, onRequest: podeEmitir }, async (request, reply) => {
+    app.get<{ Params: ParametrosId }>("/lotes/:id/certificado", { schema: { params: esquemaIdComExemplo(ID_LOTE_EXEMPLO) }, onRequest: podeEmitir }, async (request, reply) => {
         const certificado = await certificadoService.certificadoDoLote(request.params.id, request.user.id);
         return enviarPdf(reply, certificado);
     });

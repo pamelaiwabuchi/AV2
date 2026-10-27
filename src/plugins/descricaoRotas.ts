@@ -1,6 +1,8 @@
 // Textos que aparecem no Swagger (/docs): o grupo de cada rota, um resumo do que ela faz
 // (com os papéis que podem usá-la) e um exemplo de corpo pronto para o "Try it out".
 
+import { ID_DEPARTAMENTO_EXEMPLO } from "../utils/esquemas.js";
+
 const ID_DE_EXEMPLO = "00000000-0000-0000-0000-000000000000";
 
 export const grupos = [
@@ -129,7 +131,7 @@ export const exemplos: Record<string, object> = {
     "POST /auth/login": { login: "admin", senha: "Greencode1" },
     "PATCH /auth/senha": { senhaAtual: "Greencode1", novaSenha: "Admin2026" },
 
-    "POST /usuarios": { nome: "Ana Souza", login: "ana.souza", senha: "Greencode1", papel: "OPERADOR_CADASTRO", departamentoId: ID_DE_EXEMPLO },
+    "POST /usuarios": { nome: "Ana Souza", login: "ana.souza", senha: "Greencode1", papel: "OPERADOR_CADASTRO", departamentoId: ID_DEPARTAMENTO_EXEMPLO },
     "PATCH /usuarios/:id": { nome: "Ana Souza Lima", versao: 1 },
     "PATCH /usuarios/:id/senha": { novaSenha: "Greencode1" },
 
