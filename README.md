@@ -24,6 +24,7 @@ docker compose up -d --build
 2. Em `POST /auth/login`, entre com `{ "login": "admin", "senha": "Greencode1" }`.
 3. Clique em **Authorize**, cole o token e troque a senha em `PATCH /auth/senha` (a do seed é provisória).
 4. Use o token novo no **Authorize**. Pronto: o [roteiro rápido de teste](#roteiro-rápido-de-teste-uns-5-minutos) mostra o que experimentar.
+5. **Certificado em PDF:** em `GET /lotes/{id}/certificado`, clique em **Try it out**. O id do lote de exemplo já vem preenchido: clique em **Execute** e depois em **Download file**. Um certificado pronto também está em [exemplos/certificado-exemplo.pdf](exemplos/certificado-exemplo.pdf).
 
 Para desligar: `docker compose down`. Para instalar sem Docker, veja a [seção 2](#2-instalação).
 
@@ -130,7 +131,7 @@ Abra o `.env` e preencha:
 | `PORT` | Porta do servidor | `3333` |
 | `JWT_SECRET` | Texto secreto usado para assinar os tokens. Use um texto longo e aleatório | (veja abaixo) |
 | `ADMIN_LOGIN` | Login do primeiro administrador, criado pelo seed | `admin` |
-| `ADMIN_SENHA` | Senha provisória do primeiro administrador | `troque-esta-senha` |
+| `ADMIN_SENHA` | Senha provisória do primeiro administrador | `Greencode1` |
 | `EMPRESA_RAZAO_SOCIAL` | Nome da empresa que emite os certificados de destinação | `GreenCode Logística Reversa Ltda` |
 | `EMPRESA_CNPJ` | CNPJ da empresa emissora (precisa ser válido) | `47.638.125/0001-05` |
 
@@ -178,7 +179,7 @@ A documentação interativa (Swagger) fica em **<http://localhost:3333/docs>**. 
 1. Faça login em `POST /auth/login`:
 
 ```json
-{ "login": "admin", "senha": "troque-esta-senha" }
+{ "login": "admin", "senha": "Greencode1" }
 ```
 
 (use os valores de `ADMIN_LOGIN` e `ADMIN_SENHA` do seu `.env`)
@@ -188,7 +189,7 @@ A documentação interativa (Swagger) fica em **<http://localhost:3333/docs>**. 
 4. Troque a senha em `PATCH /auth/senha`:
 
 ```json
-{ "senhaAtual": "troque-esta-senha", "novaSenha": "Admin2026" }
+{ "senhaAtual": "Greencode1", "novaSenha": "Admin2026" }
 ```
 
 A nova senha precisa ter 8 caracteres, 1 maiúscula e 1 número. A resposta traz um **token novo**.
@@ -235,6 +236,7 @@ Usa os dados do seed. Faça primeiro os passos 1 a 5 acima, com o `admin`.
 8. **Auditoria:** `GET /auditoria?tabela=Equipamento` mostra quem alterou o quê e quando.
 9. **Validação:** `POST /organizacoes` com `{ "razaoSocial": "Teste" }`. Resposta **400** dizendo qual campo falta.
 10. **Permissão:** faça login como `carla.auditora` (senha `Greencode1`), troque a senha e use o token novo no Authorize. `POST /organizacoes` responde **403**: o auditor só consulta.
+11. **Certificado:** `GET /lotes/{id}/certificado` com o id que já vem preenchido (lote `NF-1001`). Clique em **Download file** para salvar o PDF.
 
 ---
 
@@ -481,6 +483,7 @@ Todos os ids são **UUID**.
 ### Certificado de destinação final (PDF)
 - Inspirado no **CDF** usado no Brasil: o documento com que a empresa declara ao cliente que os resíduos dele tiveram destinação adequada.
 - Por **lote** ou por **organização e período** (inclui os lotes que ficaram FINALIZADOS dentro do período). Só lotes **FINALIZADOS**, porque antes disso o destino ainda não aconteceu.
+- O lote FINALIZADO do seed (`NF-1001`) tem sempre o id `00000000-0000-4000-8000-000000001001`, que já vem preenchido no Swagger, para testar sem procurar o id. Exemplo do resultado: [exemplos/certificado-exemplo.pdf](exemplos/certificado-exemplo.pdf).
 - Emitido por GESTOR, OPERADOR_CADASTRO e AUDITOR (e ADMINISTRADOR). Gerado na hora com a biblioteca **pdfkit**, sem ficar guardado: reflete sempre o estado atual do lote.
 - Traz o emitente (dados do `.env`), o cliente, os lotes, a tabela de equipamentos (código, tipo, marca e modelo, peso, destinação e parceiro com CNPJ), os totais por destinação, uma declaração e quem emitiu. A destinação de cada equipamento vem da sua última baixa definitiva.
 

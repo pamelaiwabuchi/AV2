@@ -7,6 +7,7 @@ import * as destinoService from "../src/services/destinoService.js";
 import * as loteService from "../src/services/loteService.js";
 import * as equipamentoService from "../src/services/equipamentoService.js";
 import type { DadosEquipamentoNovo } from "../src/repositories/equipamentoRepository.js";
+import { ID_LOTE_EXEMPLO } from "../src/utils/esquemas.js";
 import type { StatusRastreamento } from "../src/generated/prisma/enums.js";
 
 const CUSTO_BCRYPT = 10;
@@ -151,7 +152,7 @@ async function criarDadosDeExemplo() {
     const ecoPecas = await destinoService.criar({ ...contato, razaoSocial: "EcoPeças Distribuidora", cnpj: "08.246.281/0001-79", email: "pecas@ecopecas.com.br" }, idAdmin);
 
     const finalizado = await loteService.criar(
-        { organizacaoId: techCorp.id, dataEntrada: dia(-40), notaFiscal: "NF-1001", transportadora: "TransLog", observacoes: null },
+        { id: ID_LOTE_EXEMPLO, organizacaoId: techCorp.id, dataEntrada: dia(-40), notaFiscal: "NF-1001", transportadora: "TransLog", observacoes: null },
         [equipamento("NOTEBOOK", "Dell", 2.3), equipamento("MONITOR", "LG", 4.5), equipamento("IMPRESSORA", "HP", 7.8)],
         idAdmin,
     );

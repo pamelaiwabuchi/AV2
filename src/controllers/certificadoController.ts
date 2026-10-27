@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import * as certificadoService from "../services/certificadoService.js";
 import { exigirPapel } from "../plugins/autenticacao.js";
-import { esquemaId } from "../utils/esquemas.js";
+import { esquemaId, esquemaIdLoteExemplo } from "../utils/esquemas.js";
 
 interface ParametrosId {
     id: string;
@@ -34,7 +34,7 @@ function enviarPdf(reply: FastifyReply, certificado: { numero: string; pdf: Buff
 }
 
 export async function certificadoController(app: FastifyInstance) {
-    app.get<{ Params: ParametrosId }>("/lotes/:id/certificado", { schema: { params: esquemaId }, onRequest: podeEmitir }, async (request, reply) => {
+    app.get<{ Params: ParametrosId }>("/lotes/:id/certificado", { schema: { params: esquemaIdLoteExemplo }, onRequest: podeEmitir }, async (request, reply) => {
         const certificado = await certificadoService.certificadoDoLote(request.params.id, request.user.id);
         return enviarPdf(reply, certificado);
     });

@@ -126,8 +126,8 @@ const hoje = new Date().toISOString().slice(0, 10);
 const anoAtual = new Date().getFullYear();
 
 export const exemplos: Record<string, object> = {
-    "POST /auth/login": { login: "admin", senha: "troque-esta-senha" },
-    "PATCH /auth/senha": { senhaAtual: "troque-esta-senha", novaSenha: "Admin2026" },
+    "POST /auth/login": { login: "admin", senha: "Greencode1" },
+    "PATCH /auth/senha": { senhaAtual: "Greencode1", novaSenha: "Admin2026" },
 
     "POST /usuarios": { nome: "Ana Souza", login: "ana.souza", senha: "Greencode1", papel: "OPERADOR_CADASTRO", departamentoId: ID_DE_EXEMPLO },
     "PATCH /usuarios/:id": { nome: "Ana Souza Lima", versao: 1 },

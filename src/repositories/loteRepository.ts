@@ -13,6 +13,7 @@ export interface DadosEdicaoLote {
 }
 
 export interface DadosLote extends DadosEdicaoLote {
+    id?: string; // só o seed informa, para o lote de exemplo ter sempre o mesmo id
     organizacaoId: string;
     dataEntrada: Date;
 }
